@@ -1,1 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Find Nearby Mental Health Services</title>
+  <meta name="description" content="HTML5 web app that uses your location to list nearby mental health services by distance." />
+  <style>
+    :root{
+      --bg:#0b1020; --card:#111936; --muted:#99a3b3; --text:#e8eefc; --accent:#6aa9ff; --accent-2:#89e5b9;
+      --ring: rgba(106,169,255,.6);
+    }
+    html,body{height:100%}
+    body{margin:0;background:linear-gradient(180deg,#0b1020,#0c1226 60%,#0b1020);color:var(--text);font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";}
+    .container{max-width:1100px;margin:0 auto;padding:24px}
+    header{display:flex;gap:16px;justify-content:space-between;align-items:center;margin-bottom:18px}
+    header h1{font-size:clamp(20px,3.2vw,32px);margin:0}
+    header .sub{color:var(--muted);font-size:14px}
+    .grid{display:grid;grid-template-columns: 1fr; gap:16px}
+    @media(min-width:960px){.grid{grid-template-columns: 340px 1fr}}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+    .panel{padding:16px}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .row > *{flex:1}
+    label{display:block;font-size:12px;color:var(--muted);margin:8px 0 6px}
+    input[type="text"], input[type="number"], select{width:100%;padding:10px 12px;border-radius:10px;background:#0e1530;border:1px solid rgba(255,255,255,.14);color:var(--text);outline:none}
+    input[type="text"]:focus, input[type="number"]:focus, select:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--ring)}
+    input[type="range"]{width:100%}
+    button{border:0;padding:10px 14px;border-radius:12px;background:linear-gradient(90deg,var(--accent),#5cd2ff);color:#081225;font-weight:600;cursor:pointer}
+    button.secondary{background:transparent;border:1px solid rgba(255,255,255,.18);color:var(--text)}
+    button.ghost{background:transparent;color:var(--text);border:0}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .hint{font-size:12px;color:var(--muted)}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:12px}
+    .tag{display:inline-block;margin-right:6px;margin-top:6px;padding:4px 8px;border-radius:999px;background:rgba(106,169,255,.15);border:1px solid rgba(106,169,255,.35);color:#cfe1ff;font-size:11px}
+    .result{display:flex;gap:14px;padding:14px 16px;border-top:1px solid rgba(255,255,255,.07)}
+    .result:first-child{border-top:0}
+    .result h3{margin:0 0 4px;font-size:18px}
+    .result .meta{font-size:13px;color:var(--muted)}
+    .result .cta{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+    .empty{color:var(--muted);padding:24px;text-align:center}
+    .footer{font-size:12px;color:var(--muted);margin-top:10px}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0}
+    .divider{height:1px;background:rgba(255,255,255,.08);margin:8px 0}
+    .right-actions{display:flex;gap:8px;flex-wrap:wrap}
+    a{color:#a4d0ff}
+    .danger{color:#ffbdbd}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Nearby Mental Health Services</h1>
+        <div class="sub">Private, client‑side tool to find services sorted by distance. Your location never leaves this page.</div>
+      </div>
+      <div class="right-actions">
+        <button id="btn-export" class="secondary" title="Download current results as CSV">Export CSV</button>
+        <label class="pill" for="file-input">
+          <span>➕ Add providers (CSV/JSON)</span>
+          <input id="file-input" class="sr-only" type="file" accept=".csv,.json" />
+        </label>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Controls -->
+      <section class="card panel" aria-labelledby="controls-title">
+        <h2 id="controls-title" class="sr-only">Search controls</h2>
+        <div class="row">
+          <div>
+            <label for="btn-geolocate">Your location</label>
+            <div class="row">
+              <button id="btn-geolocate" aria-label="Use my current location">📍 Use my location</button>
+              <button id="btn-clear" class="secondary" title="Clear current location">Clear</button>
+            </div>
+            <div id="you-are-here" class="hint">Location: <span id="loc-summary">not set</span></div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <div>
+            <label for="address">Or search by address (optional)</label>
+            <input id="address" type="text" placeholder="e.g., 123 Main St, City, State" inputmode="search" />
+          </div>
+          <div style="flex:0 0 auto; align-self:flex-end">
+            <button id="btn-geocode" class="secondary">🔎 Geocode</button>
+          </div>
+        </div>
+        <div class="hint">Geocoding uses OpenStreetMap Nominatim. Results may vary; no personal data is stored.</div>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <div>
+            <label for="radius">Max distance (<span id="unit-label">miles</span>): <strong><span id="radius-value">25</span></strong></label>
+            <input id="radius" type="range" min="1" max="200" step="1" value="25" />
+          </div>
+          <div>
+            <label for="units">Units</label>
+            <select id="units" aria-label="Units">
+              <option value="mi" selected>miles</option>
+              <option value="km">kilometers</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="q">Keyword</label>
+            <input id="q" type="text" placeholder="name, address, note…" />
+          </div>
+          <div>
+            <label for="type">Service type</label>
+            <select id="type">
+              <option value="">Any</option>
+              <option>Therapy</option>
+              <option>Psychiatry</option>
+              <option>Crisis</option>
+              <option>Support Group</option>
+              <option>Telehealth</option>
+              <option>Substance Use</option>
+              <option>Youth</option>
+            </select>
+          </div>
+          <div>
+            <label for="insurance">Accepts Medicaid/Medicare</label>
+            <select id="insurance">
+              <option value="">Any</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="openNow">Availability</label>
+            <select id="openNow">
+              <option value="">Any</option>
+              <option value="now">Open now (hours info required)</option>
+            </select>
+          </div>
+          <div style="align-self:flex-end">
+            <button id="btn-refresh" class="secondary">Refresh results</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Results -->
+      <section class="card" aria-labelledby="results-title">
+        <div class="panel">
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <h2 id="results-title" style="margin:0;font-size:18px">Results <span id="count" class="hint"></span></h2>
+            <div>
+              <label for="sort" style="margin:0 8px 0 0">Sort</label>
+              <select id="sort">
+                <option value="distance">Distance</option>
+                <option value="name">Name</option>
+                <option value="type">Type</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div id="results"></div>
+        <div class="footer panel">
+          ⚠️ Emergency? Call or text <strong>988</strong> for the Suicide & Crisis Lifeline (US), or dial your local emergency number. This tool is not a crisis service.
+        </div>
+      </section>
+    </div>
+
+    <div class="footer">Tip: Use the “➕ Add providers” button to import your own CSV/JSON. Nothing is uploaded; processing happens entirely in your browser.</div>
+  </div>
+
+  <script>
+    // ====== Data model ======
+    /** Sample starter dataset. Replace or import your own via the file button. */
+    let PROVIDERS = [
+      { id: "p1", name: "Harborview Counseling Center", types:["Therapy"], address: "12 Harbor St, Rivertown, NY", lat: 41.0006, lon: -73.665, phone: "(555) 555-0141", website: "https://example.org/harborview", acceptsMedicaid: true, acceptsMedicare: true, telehealth: true, hours: "Mon-Fri 9:00-18:00", notes: "Sliding scale available" },
+      { id: "p2", name: "Northside Psychiatry Associates", types:["Psychiatry"], address: "88 Maple Ave, Northside, NY", lat: 40.945, lon: -73.78, phone: "(555) 555-0177", website: "https://example.org/northside", acceptsMedicaid: false, acceptsMedicare: true, telehealth: true, hours: "Mon-Thu 10:00-19:00", notes:"Medication management" },
+      { id: "p3", name: "Rivertown Peer Support Group", types:["Support Group","Youth"], address: "201 Community Ln, Rivertown, NY", lat: 41.021, lon: -73.69, phone: "(555) 555-0132", website: "https://example.org/peers", acceptsMedicaid: true, acceptsMedicare: false, telehealth: false, hours: "Tue 18:00-20:00", notes: "Free weekly group" },
+      { id: "p4", name: "Lifeline Crisis Center", types:["Crisis"], address: "101 Main St, Midtown, NY", lat: 40.89, lon: -73.95, phone: "(555) 555-0103", website: "https://example.org/lifeline", acceptsMedicaid: true, acceptsMedicare: true, telehealth: true, hours: "24/7", notes: "Walk-in assessment" },
+      { id: "p5", name: "Evergreen Recovery Clinic", types:["Substance Use","Therapy"], address: "5 Grove Rd, Greenfield, NY", lat: 41.06, lon: -73.77, phone: "(555) 555-0119", website: "https://example.org/evergreen", acceptsMedicaid: true, acceptsMedicare: true, telehealth: true, hours: "Mon-Sat 8:00-20:00", notes: "MAT available; Spanish-speaking" }
+    ];
+
+    // ====== State ======
+    const state = {
+      user: { lat: null, lon: null, label: null },
+      units: 'mi',
+      radius: 25,
+      q: '',
+      type: '',
+      insurance: '',
+      openNow: '',
+      sort: 'distance'
+    };
+
+    // ====== Utilities ======
+    const toRad = d => (d * Math.PI) / 180;
+    function haversine(lat1, lon1, lat2, lon2, units = 'mi'){
+      const R = units === 'km' ? 6371 : 3958.8; // Earth radius
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+    function fmtDistance(d, units){
+      if (d == null || isNaN(d)) return '–';
+      return d < 10 ? `${d.toFixed(2)} ${units}` : `${d.toFixed(1)} ${units}`;
+    }
+    function phoneLink(p){ return p ? `tel:${p.replace(/[^\d+]/g,'')}` : null }
+    function mapsLink(lat, lon, name){
+      const q = encodeURIComponent(`${lat},${lon} (${name||'Destination'})`);
+      return `https://www.google.com/maps/search/?api=1&query=${q}`;
+    }
+
+    function nowTime(){
+      const d = new Date();
+      return { day: d.getDay(), minutes: d.getHours()*60 + d.getMinutes() };
+    }
+    // naive parser for "Mon-Fri 9:00-18:00" and "24/7" just for demo purposes
+    function isOpenNow(hoursStr){
+      if (!hoursStr) return false;
+      const h = hoursStr.trim().toLowerCase();
+      if (h.includes('24/7')) return true;
+      // Expect patterns like "Mon-Fri 9:00-18:00" or "Tue 18:00-20:00"
+      const daysMap = {sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6};
+      const {day, minutes} = nowTime();
+      const parts = h.split(/;\s*/);
+      for (const part of parts){
+        const m = part.match(/(sun|mon|tue|wed|thu|fri|sat)(?:-(sun|mon|tue|wed|thu|fri|sat))?\s+(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/);
+        if (!m) continue;
+        const startDay = daysMap[m[1]];
+        const endDay = m[2] ? daysMap[m[2]] : startDay;
+        const toMin = s=>{const [H,M]=s.split(':').map(Number);return H*60+M};
+        const start = toMin(m[3]);
+        const end = toMin(m[4]);
+        let inDayRange = false;
+        if (startDay <= endDay) inDayRange = (day>=startDay && day<=endDay);
+        else inDayRange = (day>=startDay || day<=endDay); // wraps weekend
+        if (inDayRange && minutes>=start && minutes<=end) return true;
+      }
+      return false;
+    }
+
+    // ====== Rendering ======
+    const els = {
+      results: document.getElementById('results'),
+      count: document.getElementById('count'),
+      unitLabel: document.getElementById('unit-label'),
+      radiusValue: document.getElementById('radius-value'),
+      locSummary: document.getElementById('loc-summary'),
+    };
+
+    function providerMatchesFilters(p, dist){
+      if (state.q){
+        const q = state.q.toLowerCase();
+        const blob = [p.name, p.address, p.notes, (p.types||[]).join(' ')].join(' ').toLowerCase();
+        if (!blob.includes(q)) return false;
+      }
+      if (state.type){
+        if (!p.types || !p.types.includes(state.type)) return false;
+      }
+      if (state.insurance){
+        const needYes = state.insurance === 'yes';
+        const has = !!(p.acceptsMedicaid || p.acceptsMedicare);
+        if (needYes && !has) return false;
+        if (!needYes && has) return false;
+      }
+      if (state.openNow === 'now'){
+        if (!isOpenNow(p.hours)) return false;
+      }
+      if (state.user.lat != null && state.user.lon != null){
+        if (dist == null || dist > state.radius) return false;
+      }
+      return true;
+    }
+
+    function computeDistances(list){
+      if (state.user.lat == null || state.user.lon == null) return list.map(p=>({ ...p, distance: null }));
+      return list.map(p=>({
+        ...p,
+        distance: haversine(state.user.lat, state.user.lon, p.lat, p.lon, state.units)
+      }));
+    }
+
+    function applyFilters(){
+      let list = computeDistances(PROVIDERS);
+      list = list.filter(p => providerMatchesFilters(p, p.distance));
+      list.sort((a,b)=>{
+        if (state.sort==='name') return a.name.localeCompare(b.name);
+        if (state.sort==='type') return (a.types?.[0]||'').localeCompare(b.types?.[0]||'');
+        const da = a.distance ?? Infinity, db = b.distance ?? Infinity; return da - db;
+      });
+      renderResults(list);
+    }
+
+    function renderResults(list){
+      els.count.textContent = list.length ? `– ${list.length} found` : '– 0 found';
+      if (!list.length){
+        els.results.innerHTML = `<div class="empty">No providers match your filters. Try increasing the radius or clearing filters.</div>`;
+        return;
+      }
+      const unit = state.units;
+      const frag = document.createDocumentFragment();
+      list.forEach(p=>{
+        const item = document.createElement('div');
+        item.className = 'result';
+        item.innerHTML = `
+          <div style="flex:1">
+            <h3>${p.name}</h3>
+            <div class="meta">${p.address || ''}</div>
+            <div class="meta">${p.distance!=null?`Distance: <strong>${fmtDistance(p.distance, unit)}</strong>`:'Distance: –'}</div>
+            <div style="margin-top:6px">${(p.types||[]).map(t=>`<span class='tag'>${t}</span>`).join('')}</div>
+            ${p.notes?`<div class="hint" style="margin-top:6px">${p.notes}</div>`:''}
+            <div class="cta">
+              ${p.phone?`<a class="pill" href="${phoneLink(p.phone)}" aria-label="Call ${p.name}">📞 ${p.phone}</a>`:''}
+              ${p.website?`<a class="pill" href="${p.website}" target="_blank" rel="noopener">🌐 Website</a>`:''}
+              <a class="pill" href="${mapsLink(p.lat,p.lon,p.name)}" target="_blank" rel="noopener">🗺️ Directions</a>
+              ${p.acceptsMedicaid||p.acceptsMedicare?`<span class="pill">💳 Accepts Medicaid/Medicare</span>`:''}
+              ${p.telehealth?`<span class="pill">💻 Telehealth</span>`:''}
+            </div>
+          </div>
+        `;
+        frag.appendChild(item);
+      });
+      els.results.innerHTML = '';
+      els.results.appendChild(frag);
+    }
+
+    // ====== I/O: CSV/JSON import & export ======
+    function toCSV(rows){
+      const headers = ['name','address','lat','lon','phone','website','types','notes','acceptsMedicaid','acceptsMedicare','telehealth','hours'];
+      const escape = v => '"' + String(v??'').replace(/"/g,'""') + '"';
+      const lines = [headers.join(',')];
+      for (const r of rows){
+        lines.push(headers.map(h=> escape(h==='types' ? (r[h]||[]).join(';') : r[h])).join(','));
+      }
+      return lines.join('\n');
+    }
+    function download(filename, text){
+      const blob = new Blob([text], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    }
+    function parseCSV(text){
+      // very lightweight CSV parser (no quoted newlines). Use a proper CSV lib for production.
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      const headers = lines.shift().split(',').map(h=>h.trim());
+      return lines.map(line=>{
+        const cols = [];
+        let cur = '', inQuotes = false;
+        for (let i=0;i<line.length;i++){
+          const ch = line[i];
+          if (ch==='"'){
+            if (inQuotes && line[i+1]==='"'){ cur+='"'; i++; }
+            else inQuotes = !inQuotes;
+          } else if (ch===',' && !inQuotes){ cols.push(cur); cur=''; }
+          else cur+=ch;
+        }
+        cols.push(cur);
+        const obj = {};
+        headers.forEach((h,i)=> obj[h] = cols[i] ?? '');
+        if (obj.lat && obj.lon){ obj.lat = Number(obj.lat); obj.lon = Number(obj.lon); }
+        if (obj.types) obj.types = String(obj.types).split(/;\s*/).filter(Boolean);
+        obj.acceptsMedicaid = String(obj.acceptsMedicaid||'').toLowerCase().startsWith('t') || obj.acceptsMedicaid==='1' || obj.acceptsMedicaid==='yes';
+        obj.acceptsMedicare = String(obj.acceptsMedicare||'').toLowerCase().startsWith('t') || obj.acceptsMedicare==='1' || obj.acceptsMedicare==='yes';
+        obj.telehealth = String(obj.telehealth||'').toLowerCase().startsWith('t') || obj.telehealth==='1' || obj.telehealth==='yes';
+        obj.id = 'u_' + Math.random().toString(36).slice(2,9);
+        return obj;
+      });
+    }
+
+    // ====== Geolocation & Geocoding ======
+    async function useMyLocation(){
+      setBusy(true);
+      return new Promise((resolve)=>{
+        if (!('geolocation' in navigator)){
+          alert('Geolocation is not supported by your browser.');
+          setBusy(false); resolve(false); return;
+        }
+        navigator.geolocation.getCurrentPosition(async pos => {
+          const {latitude: lat, longitude: lon} = pos.coords;
+          state.user = { lat, lon, label: `${lat.toFixed(5)}, ${lon.toFixed(5)}` };
+          updateLocSummary();
+          applyFilters();
+          setBusy(false);
+          resolve(true);
+        }, err => {
+          alert('Unable to get your location (' + err.message + ').');
+          setBusy(false); resolve(false);
+        }, { enableHighAccuracy:true, timeout: 10000, maximumAge: 60000 });
+      });
+    }
+
+    async function geocodeAddress(){
+      const q = document.getElementById('address').value.trim();
+      if (!q) { alert('Please enter an address or place.'); return; }
+      setBusy(true);
+      try{
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`;
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const data = await res.json();
+        if (!Array.isArray(data) || !data.length){ alert('No results found. Try a more specific address.'); setBusy(false); return; }
+        const best = data[0];
+        const lat = Number(best.lat), lon = Number(best.lon);
+        state.user = { lat, lon, label: best.display_name };
+        updateLocSummary();
+        applyFilters();
+      } catch(e){
+        console.error(e); alert('Geocoding failed.');
+      } finally { setBusy(false); }
+    }
+
+    function clearLocation(){ state.user = { lat:null, lon:null, label:null }; updateLocSummary(); applyFilters(); }
+    function updateLocSummary(){
+      els.locSummary.textContent = state.user.lat!=null ? `${state.user.label}` : 'not set';
+    }
+
+    function setBusy(isBusy){
+      document.querySelectorAll('button').forEach(b=> b.disabled = isBusy);
+    }
+
+    // ====== Event wiring ======
+    document.getElementById('btn-geolocate').addEventListener('click', useMyLocation);
+    document.getElementById('btn-clear').addEventListener('click', clearLocation);
+    document.getElementById('btn-geocode').addEventListener('click', geocodeAddress);
+    document.getElementById('btn-refresh').addEventListener('click', applyFilters);
+    document.getElementById('units').addEventListener('change', (e)=>{ state.units=e.target.value; document.getElementById('unit-label').textContent = state.units==='km'?'kilometers':'miles'; applyFilters(); });
+    document.getElementById('radius').addEventListener('input', (e)=>{ state.radius = Number(e.target.value); els.radiusValue.textContent = state.radius; applyFilters(); });
+    document.getElementById('q').addEventListener('input', (e)=>{ state.q = e.target.value; applyFilters(); });
+    document.getElementById('type').addEventListener('change', (e)=>{ state.type = e.target.value; applyFilters(); });
+    document.getElementById('insurance').addEventListener('change', (e)=>{ state.insurance = e.target.value; applyFilters(); });
+    document.getElementById('openNow').addEventListener('change', (e)=>{ state.openNow = e.target.value; applyFilters(); });
+    document.getElementById('sort').addEventListener('change', (e)=>{ state.sort = e.target.value; applyFilters(); });
+
+    document.getElementById('btn-export').addEventListener('click', ()=>{
+      const list = computeDistances(PROVIDERS).filter(p=>providerMatchesFilters(p,p.distance));
+      const csv = toCSV(list);
+      download('mental-health-services.csv', csv);
+    });
+
+    document.getElementById('file-input').addEventListener('change', async (e)=>{
+      const file = e.target.files?.[0]; if (!file) return;
+      const text = await file.text();
+      try{
+        let rows = [];
+        if (file.name.toLowerCase().endsWith('.json')){
+          const data = JSON.parse(text);
+          rows = Array.isArray(data) ? data : (data.providers || []);
+        } else {
+          rows = parseCSV(text);
+        }
+        const valid = rows.filter(r=> typeof r.lat==='number' && typeof r.lon==='number' && !isNaN(r.lat) && !isNaN(r.lon));
+        if (!valid.length){ alert('No valid rows found. Make sure your file has lat, lon columns.'); return; }
+        PROVIDERS = [...PROVIDERS, ...valid];
+        applyFilters();
+        alert(`Imported ${valid.length} provider(s).`);
+      } catch(err){ console.error(err); alert('Failed to import file. Ensure it is valid CSV or JSON.'); }
+      e.target.value = '';
+    });
+
+    // Initial render
+    updateLocSummary();
+    applyFilters();
+  </script>
+</body>
+</html>
+
 
