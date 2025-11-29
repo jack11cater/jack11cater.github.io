@@ -1,475 +1,437 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Find Nearby Mental Health Services</title>
-  <meta name="description" content="HTML5 web app that uses your location to list nearby mental health services by distance." />
-  <style>
-    :root{
-      --bg:#0b1020; --card:#111936; --muted:#99a3b3; --text:#e8eefc; --accent:#6aa9ff; --accent-2:#89e5b9;
-      --ring: rgba(106,169,255,.6);
-    }
-    html,body{height:100%}
-    body{margin:0;background:linear-gradient(180deg,#0b1020,#0c1226 60%,#0b1020);color:var(--text);font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";}
-    .container{max-width:1100px;margin:0 auto;padding:24px}
-    header{display:flex;gap:16px;justify-content:space-between;align-items:center;margin-bottom:18px}
-    header h1{font-size:clamp(20px,3.2vw,32px);margin:0}
-    header .sub{color:var(--muted);font-size:14px}
-    .grid{display:grid;grid-template-columns: 1fr; gap:16px}
-    @media(min-width:960px){.grid{grid-template-columns: 340px 1fr}}
-    .card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
-    .panel{padding:16px}
-    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .row > *{flex:1}
-    label{display:block;font-size:12px;color:var(--muted);margin:8px 0 6px}
-    input[type="text"], input[type="number"], select{width:100%;padding:10px 12px;border-radius:10px;background:#0e1530;border:1px solid rgba(255,255,255,.14);color:var(--text);outline:none}
-    input[type="text"]:focus, input[type="number"]:focus, select:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--ring)}
-    input[type="range"]{width:100%}
-    button{border:0;padding:10px 14px;border-radius:12px;background:linear-gradient(90deg,var(--accent),#5cd2ff);color:#081225;font-weight:600;cursor:pointer}
-    button.secondary{background:transparent;border:1px solid rgba(255,255,255,.18);color:var(--text)}
-    button.ghost{background:transparent;color:var(--text);border:0}
-    button:disabled{opacity:.6;cursor:not-allowed}
-    .hint{font-size:12px;color:var(--muted)}
-    .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:12px}
-    .tag{display:inline-block;margin-right:6px;margin-top:6px;padding:4px 8px;border-radius:999px;background:rgba(106,169,255,.15);border:1px solid rgba(106,169,255,.35);color:#cfe1ff;font-size:11px}
-    .result{display:flex;gap:14px;padding:14px 16px;border-top:1px solid rgba(255,255,255,.07)}
-    .result:first-child{border-top:0}
-    .result h3{margin:0 0 4px;font-size:18px}
-    .result .meta{font-size:13px;color:var(--muted)}
-    .result .cta{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-    .empty{color:var(--muted);padding:24px;text-align:center}
-    .footer{font-size:12px;color:var(--muted);margin-top:10px}
-    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0}
-    .divider{height:1px;background:rgba(255,255,255,.08);margin:8px 0}
-    .right-actions{display:flex;gap:8px;flex-wrap:wrap}
-    a{color:#a4d0ff}
-    .danger{color:#ffbdbd}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Nearby Mental Health Services</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- REMOVED: sql.js is no longer needed -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script> -->
+
+    <style>
+        /* Custom styles */
+        html, body {
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background-color: #f7fafc; /* Tailwind gray-100 */
+        }
+        /* Custom scrollbar */
+        #results-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        #results-container::-webkit-scrollbar-thumb {
+            @apply bg-blue-300 rounded-full;
+        }
+        #results-container::-webkit-scrollbar-track {
+            @apply bg-gray-100;
+        }
+    </style>
+    <!-- Add Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
-  <div class="container">
-    <header>
-      <div>
-        <h1>Nearby Mental Health Services</h1>
-        <div class="sub">Private, client‑side tool to find services sorted by distance. Your location never leaves this page.</div>
-      </div>
-      <div class="right-actions">
-        <button id="btn-export" class="secondary" title="Download current results as CSV">Export CSV</button>
-        <label class="pill" for="file-input">
-          <span>➕ Add providers (CSV/JSON)</span>
-          <input id="file-input" class="sr-only" type="file" accept=".csv,.json" />
-        </label>
-      </div>
-    </header>
+<body class="flex flex-col md:flex-row h-screen bg-gray-100">
 
-    <div class="grid">
-      <!-- Controls -->
-      <section class="card panel" aria-labelledby="controls-title">
-        <h2 id="controls-title" class="sr-only">Search controls</h2>
-        <div class="row">
-          <div>
-            <label for="btn-geolocate">Your location</label>
-            <div class="row">
-              <button id="btn-geolocate" aria-label="Use my current location">📍 Use my location</button>
-              <button id="btn-clear" class="secondary" title="Clear current location">Clear</button>
+    <!-- Left Panel: Controls & Search -->
+    <aside class="w-full md:w-1/3 lg:w-1/4 p-6 bg-white shadow-lg overflow-y-auto">
+        <div class="flex items-center space-x-3 mb-6">
+            <svg class="w-10 h-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c.24 0 .467-.02.686-.058m-1.372 0a9.004 9.004 0 00-6.654-6.654M12 3c.24 0 .467-.02.686-.058m6.654 6.654a9.004 9.004 0 00-6.654-6.654m0 0a9.004 9.004 0 00-6.654 6.654M3 12c0 .24.02.467.058.686m1.372 0a9.004 9.004 0 006.654 6.654m0 0a9.004 9.004 0 006.654-6.654m0 0c.038-.219.058-.446.058-.686s-.02-.467-.058-.686M12 12c-1.33 0-2.582.403-3.646 1.103m6.292 0c-1.064-.7-2.316-1.103-3.646-1.103" />
+            </svg>
+            <h1 class="text-2xl font-bold text-gray-800">Provider Finder</h1>
+        </div>
+
+        <!-- REMOVED: Database loading is now done on the server -->
+        <div class="mb-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg">
+            <p id="db-status" class="text-sm font-medium text-blue-700">
+                Ready to search! The provider database is live on the server.
+            </p>
+        </div>
+
+
+        <!-- Step 1: Search Parameters -->
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                Search Criteria
+            </label>
+            <div class="space-y-4">
+                <div>
+                    <label for="address-input" class="block text-xs font-medium text-gray-600 mb-1">Your Location (Address or ZIP)</label>
+                    <div class="relative flex items-center">
+                        <input type="text" id="address-input" placeholder="e.g., 123 Main St or 90210" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button id="get-location-btn" title="Use my current location" class="absolute right-2 p-1 text-gray-500 hover:text-blue-600 transition-colors duration-200">
+                            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <label for="radius-select" class="block text-xs font-medium text-gray-600 mb-1">Search Radius</label>
+                    <select id="radius-select" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="5">5 miles</option>
+                        <option value="10">10 miles</option>
+                        <option value="25" selected>25 miles</option>
+                        <option value="50">50 miles</option>
+                        <option value="100">100 miles</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="taxonomy-select" class="block text-xs font-medium text-gray-600 mb-1">Provider Type</label>
+                    <select id="taxonomy-select" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Provider Types</option>
+                        <option value="2084P0800X">Psychology, Clinical</option>
+                        <option value="101Y00000X">Counselor</option>
+                        <option value="101YA0400X">Counselor, Addiction</option>
+                        <option value="101YM0800X">Counselor, Mental Health</option>
+                        <option value="103T00000X">Social Worker</option>
+                        <option value="103TA0700X">Social Worker, Clinical</option>
+                        <option value="207Q00000X">Psychiatry</option>
+                        <option value="207QA0000X">Psychiatry, Addiction</option>
+                    </select>
+                </div>
             </div>
-            <div id="you-are-here" class="hint">Location: <span id="loc-summary">not set</span></div>
-          </div>
         </div>
 
-        <div class="divider"></div>
-
-        <div class="row">
-          <div>
-            <label for="address">Or search by address (optional)</label>
-            <input id="address" type="text" placeholder="e.g., 123 Main St, City, State" inputmode="search" />
-          </div>
-          <div style="flex:0 0 auto; align-self:flex-end">
-            <button id="btn-geocode" class="secondary">🔎 Geocode</button>
-          </div>
-        </div>
-        <div class="hint">Geocoding uses OpenStreetMap Nominatim. Results may vary; no personal data is stored.</div>
-
-        <div class="divider"></div>
-
-        <div class="row">
-          <div>
-            <label for="radius">Max distance (<span id="unit-label">miles</span>): <strong><span id="radius-value">25</span></strong></label>
-            <input id="radius" type="range" min="1" max="200" step="1" value="25" />
-          </div>
-          <div>
-            <label for="units">Units</label>
-            <select id="units" aria-label="Units">
-              <option value="mi" selected>miles</option>
-              <option value="km">kilometers</option>
-            </select>
-          </div>
+        <!-- Step 2: Run Search -->
+        <div class="mb-6">
+            <!-- Enabled by default now -->
+            <button id="find-btn" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition-all duration-200 ease-in-out hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                Find Providers
+            </button>
         </div>
 
-        <div class="row">
-          <div>
-            <label for="q">Keyword</label>
-            <input id="q" type="text" placeholder="name, address, note…" />
-          </div>
-          <div>
-            <label for="type">Service type</label>
-            <select id="type">
-              <option value="">Any</option>
-              <option>Therapy</option>
-              <option>Psychiatry</option>
-              <option>Crisis</option>
-              <option>Support Group</option>
-              <option>Telehealth</option>
-              <option>Substance Use</option>
-              <option>Youth</option>
-            </select>
-          </div>
-          <div>
-            <label for="insurance">Accepts Medicaid/Medicare</label>
-            <select id="insurance">
-              <option value="">Any</option>
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </select>
-          </div>
-        </div>
+        <!-- Status Message Area -->
+        <div id="status-message" class="text-sm text-center p-3 rounded-lg hidden"></div>
+    </aside>
 
-        <div class="row">
-          <div>
-            <label for="openNow">Availability</label>
-            <select id="openNow">
-              <option value="">Any</option>
-              <option value="now">Open now (hours info required)</option>
-            </select>
-          </div>
-          <div style="align-self:flex-end">
-            <button id="btn-refresh" class="secondary">Refresh results</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- Results -->
-      <section class="card" aria-labelledby="results-title">
-        <div class="panel">
-          <div class="row" style="justify-content:space-between;align-items:center">
-            <h2 id="results-title" style="margin:0;font-size:18px">Results <span id="count" class="hint"></span></h2>
-            <div>
-              <label for="sort" style="margin:0 8px 0 0">Sort</label>
-              <select id="sort">
-                <option value="distance">Distance</option>
-                <option value="name">Name</option>
-                <option value="type">Type</option>
-              </select>
+    <!-- Right Panel: Results -->
+    <main class="w-full md:w-2/3 lg:w-3/4 h-full flex flex-col p-6">
+        <div class="bg-white shadow-lg rounded-xl h-full flex flex-col">
+            <div class="p-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-800">Results</h2>
+                <p id="results-count" class="text-sm text-gray-600 mt-1">Search to see results.</p>
             </div>
-          </div>
-        </div>
-        <div id="results"></div>
-        <div class="footer panel">
-          ⚠️ Emergency? Call or text <strong>988</strong> for the Suicide & Crisis Lifeline (US), or dial your local emergency number. This tool is not a crisis service.
-        </div>
-      </section>
-    </div>
 
-    <div class="footer">Tip: Use the “➕ Add providers” button to import your own CSV/JSON. Nothing is uploaded; processing happens entirely in your browser.</div>
-  </div>
-
-  <script>
-    // ====== Data model ======
-    /** Sample starter dataset. Replace or import your own via the file button. */
-    let PROVIDERS = [
-      { id: "p1", name: "Harborview Counseling Center", types:["Therapy"], address: "12 Harbor St, Rivertown, NY", lat: 41.0006, lon: -73.665, phone: "(555) 555-0141", website: "https://example.org/harborview", acceptsMedicaid: true, acceptsMedicare: true, telehealth: true, hours: "Mon-Fri 9:00-18:00", notes: "Sliding scale available" },
-      { id: "p2", name: "Northside Psychiatry Associates", types:["Psychiatry"], address: "88 Maple Ave, Northside, NY", lat: 40.945, lon: -73.78, phone: "(555) 555-0177", website: "https://example.org/northside", acceptsMedicaid: false, acceptsMedicare: true, telehealth: true, hours: "Mon-Thu 10:00-19:00", notes:"Medication management" },
-      { id: "p3", name: "Rivertown Peer Support Group", types:["Support Group","Youth"], address: "201 Community Ln, Rivertown, NY", lat: 41.021, lon: -73.69, phone: "(555) 555-0132", website: "https://example.org/peers", acceptsMedicaid: true, acceptsMedicare: false, telehealth: false, hours: "Tue 18:00-20:00", notes: "Free weekly group" },
-      { id: "p4", name: "Lifeline Crisis Center", types:["Crisis"], address: "101 Main St, Midtown, NY", lat: 40.89, lon: -73.95, phone: "(555) 555-0103", website: "https://example.org/lifeline", acceptsMedicaid: true, acceptsMedicare: true, telehealth: true, hours: "24/7", notes: "Walk-in assessment" },
-      { id: "p5", name: "Evergreen Recovery Clinic", types:["Substance Use","Therapy"], address: "5 Grove Rd, Greenfield, NY", lat: 41.06, lon: -73.77, phone: "(555) 555-0119", website: "https://example.org/evergreen", acceptsMedicaid: true, acceptsMedicare: true, telehealth: true, hours: "Mon-Sat 8:00-20:00", notes: "MAT available; Spanish-speaking" }
-    ];
-
-    // ====== State ======
-    const state = {
-      user: { lat: null, lon: null, label: null },
-      units: 'mi',
-      radius: 25,
-      q: '',
-      type: '',
-      insurance: '',
-      openNow: '',
-      sort: 'distance'
-    };
-
-    // ====== Utilities ======
-    const toRad = d => (d * Math.PI) / 180;
-    function haversine(lat1, lon1, lat2, lon2, units = 'mi'){
-      const R = units === 'km' ? 6371 : 3958.8; // Earth radius
-      const dLat = toRad(lat2 - lat1);
-      const dLon = toRad(lon2 - lon1);
-      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return R * c;
-    }
-    function fmtDistance(d, units){
-      if (d == null || isNaN(d)) return '–';
-      return d < 10 ? `${d.toFixed(2)} ${units}` : `${d.toFixed(1)} ${units}`;
-    }
-    function phoneLink(p){ return p ? `tel:${p.replace(/[^\d+]/g,'')}` : null }
-    function mapsLink(lat, lon, name){
-      const q = encodeURIComponent(`${lat},${lon} (${name||'Destination'})`);
-      return `https://www.google.com/maps/search/?api=1&query=${q}`;
-    }
-
-    function nowTime(){
-      const d = new Date();
-      return { day: d.getDay(), minutes: d.getHours()*60 + d.getMinutes() };
-    }
-    // naive parser for "Mon-Fri 9:00-18:00" and "24/7" just for demo purposes
-    function isOpenNow(hoursStr){
-      if (!hoursStr) return false;
-      const h = hoursStr.trim().toLowerCase();
-      if (h.includes('24/7')) return true;
-      // Expect patterns like "Mon-Fri 9:00-18:00" or "Tue 18:00-20:00"
-      const daysMap = {sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6};
-      const {day, minutes} = nowTime();
-      const parts = h.split(/;\s*/);
-      for (const part of parts){
-        const m = part.match(/(sun|mon|tue|wed|thu|fri|sat)(?:-(sun|mon|tue|wed|thu|fri|sat))?\s+(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/);
-        if (!m) continue;
-        const startDay = daysMap[m[1]];
-        const endDay = m[2] ? daysMap[m[2]] : startDay;
-        const toMin = s=>{const [H,M]=s.split(':').map(Number);return H*60+M};
-        const start = toMin(m[3]);
-        const end = toMin(m[4]);
-        let inDayRange = false;
-        if (startDay <= endDay) inDayRange = (day>=startDay && day<=endDay);
-        else inDayRange = (day>=startDay || day<=endDay); // wraps weekend
-        if (inDayRange && minutes>=start && minutes<=end) return true;
-      }
-      return false;
-    }
-
-    // ====== Rendering ======
-    const els = {
-      results: document.getElementById('results'),
-      count: document.getElementById('count'),
-      unitLabel: document.getElementById('unit-label'),
-      radiusValue: document.getElementById('radius-value'),
-      locSummary: document.getElementById('loc-summary'),
-    };
-
-    function providerMatchesFilters(p, dist){
-      if (state.q){
-        const q = state.q.toLowerCase();
-        const blob = [p.name, p.address, p.notes, (p.types||[]).join(' ')].join(' ').toLowerCase();
-        if (!blob.includes(q)) return false;
-      }
-      if (state.type){
-        if (!p.types || !p.types.includes(state.type)) return false;
-      }
-      if (state.insurance){
-        const needYes = state.insurance === 'yes';
-        const has = !!(p.acceptsMedicaid || p.acceptsMedicare);
-        if (needYes && !has) return false;
-        if (!needYes && has) return false;
-      }
-      if (state.openNow === 'now'){
-        if (!isOpenNow(p.hours)) return false;
-      }
-      if (state.user.lat != null && state.user.lon != null){
-        if (dist == null || dist > state.radius) return false;
-      }
-      return true;
-    }
-
-    function computeDistances(list){
-      if (state.user.lat == null || state.user.lon == null) return list.map(p=>({ ...p, distance: null }));
-      return list.map(p=>({
-        ...p,
-        distance: haversine(state.user.lat, state.user.lon, p.lat, p.lon, state.units)
-      }));
-    }
-
-    function applyFilters(){
-      let list = computeDistances(PROVIDERS);
-      list = list.filter(p => providerMatchesFilters(p, p.distance));
-      list.sort((a,b)=>{
-        if (state.sort==='name') return a.name.localeCompare(b.name);
-        if (state.sort==='type') return (a.types?.[0]||'').localeCompare(b.types?.[0]||'');
-        const da = a.distance ?? Infinity, db = b.distance ?? Infinity; return da - db;
-      });
-      renderResults(list);
-    }
-
-    function renderResults(list){
-      els.count.textContent = list.length ? `– ${list.length} found` : '– 0 found';
-      if (!list.length){
-        els.results.innerHTML = `<div class="empty">No providers match your filters. Try increasing the radius or clearing filters.</div>`;
-        return;
-      }
-      const unit = state.units;
-      const frag = document.createDocumentFragment();
-      list.forEach(p=>{
-        const item = document.createElement('div');
-        item.className = 'result';
-        item.innerHTML = `
-          <div style="flex:1">
-            <h3>${p.name}</h3>
-            <div class="meta">${p.address || ''}</div>
-            <div class="meta">${p.distance!=null?`Distance: <strong>${fmtDistance(p.distance, unit)}</strong>`:'Distance: –'}</div>
-            <div style="margin-top:6px">${(p.types||[]).map(t=>`<span class='tag'>${t}</span>`).join('')}</div>
-            ${p.notes?`<div class="hint" style="margin-top:6px">${p.notes}</div>`:''}
-            <div class="cta">
-              ${p.phone?`<a class="pill" href="${phoneLink(p.phone)}" aria-label="Call ${p.name}">📞 ${p.phone}</a>`:''}
-              ${p.website?`<a class="pill" href="${p.website}" target="_blank" rel="noopener">🌐 Website</a>`:''}
-              <a class="pill" href="${mapsLink(p.lat,p.lon,p.name)}" target="_blank" rel="noopener">🗺️ Directions</a>
-              ${p.acceptsMedicaid||p.acceptsMedicare?`<span class="pill">💳 Accepts Medicaid/Medicare</span>`:''}
-              ${p.telehealth?`<span class="pill">💻 Telehealth</span>`:''}
+            <div id="results-container" class="flex-grow p-4 overflow-y-auto space-y-4">
+                <!-- Initial placeholder -->
+                <div id="results-placeholder" class="text-center text-gray-500 pt-16">
+                    <svg class="w-12 h-12 mx-auto text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                    </svg>
+                    <p class="mt-2">Provider results will appear here.</p>
+                </div>
             </div>
-          </div>
-        `;
-        frag.appendChild(item);
-      });
-      els.results.innerHTML = '';
-      els.results.appendChild(frag);
-    }
 
-    // ====== I/O: CSV/JSON import & export ======
-    function toCSV(rows){
-      const headers = ['name','address','lat','lon','phone','website','types','notes','acceptsMedicaid','acceptsMedicare','telehealth','hours'];
-      const escape = v => '"' + String(v??'').replace(/"/g,'""') + '"';
-      const lines = [headers.join(',')];
-      for (const r of rows){
-        lines.push(headers.map(h=> escape(h==='types' ? (r[h]||[]).join(';') : r[h])).join(','));
-      }
-      return lines.join('\n');
-    }
-    function download(filename, text){
-      const blob = new Blob([text], {type:'text/csv;charset=utf-8;'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = filename; a.click();
-      URL.revokeObjectURL(url);
-    }
-    function parseCSV(text){
-      // very lightweight CSV parser (no quoted newlines). Use a proper CSV lib for production.
-      const lines = text.split(/\r?\n/).filter(Boolean);
-      const headers = lines.shift().split(',').map(h=>h.trim());
-      return lines.map(line=>{
-        const cols = [];
-        let cur = '', inQuotes = false;
-        for (let i=0;i<line.length;i++){
-          const ch = line[i];
-          if (ch==='"'){
-            if (inQuotes && line[i+1]==='"'){ cur+='"'; i++; }
-            else inQuotes = !inQuotes;
-          } else if (ch===',' && !inQuotes){ cols.push(cur); cur=''; }
-          else cur+=ch;
+            <div id="load-more-container" class="p-4 border-t border-gray-200 text-center" style="display: none;">
+                <button id="load-more-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-6 rounded-lg shadow-sm transition-all duration-200 ease-in-out hover:bg-gray-300">
+                    Load More
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        // --- Globals ---
+        // NEW: URL for the back-end server.
+        // Assumes the Python script is running on http://127.0.0.1:5000
+        const API_URL = "http://127.0.0.1:5000/api/search";
+
+        // 'allFoundProviders' now only stores the *currently loaded* providers
+        let allFoundProviders = [];
+        let currentOffset = 0;
+        let totalFound = 0; // Total available results on the server
+        let userCurrentCoords = null;
+        let isSearching = false; // Prevent multiple simultaneous searches
+
+        // --- DOM Elements ---
+        const findBtn = document.getElementById('find-btn');
+        const addressInput = document.getElementById('address-input');
+        const radiusSelect = document.getElementById('radius-select');
+        const taxonomySelect = document.getElementById('taxonomy-select');
+        const statusMessage = document.getElementById('status-message');
+        const resultsContainer = document.getElementById('results-container');
+        const resultsPlaceholder = document.getElementById('results-placeholder');
+        const resultsCount = document.getElementById('results-count');
+        const loadMoreContainer = document.getElementById('load-more-container');
+        const loadMoreBtn = document.getElementById('load-more-btn');
+        const getLocationBtn = document.getElementById('get-location-btn');
+
+        // REMOVED: initDb() function is no longer needed.
+
+        // --- Geocoding Functions ---
+
+        function handleGetLocation() {
+            if (isSearching || !navigator.geolocation) {
+                showStatus("Geolocation is not supported or a search is in progress.", "error");
+                return;
+            }
+
+            showStatus("Getting your location...", "info");
+            getLocationBtn.disabled = true;
+            findBtn.disabled = true;
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    userCurrentCoords = {
+                        lat: position.coords.latitude,
+                        lon: position.coords.longitude
+                    };
+                    showStatus("Location found. Getting address...", "info");
+
+                    try {
+                        const address = await reverseGeocode(userCurrentCoords.lat, userCurrentCoords.lon);
+                        addressInput.value = address;
+                        showStatus("Location found. Starting search...", "success");
+                        findProviders(true); // Pass true to indicate new search
+                    } catch (err) {
+                        showStatus("Found coordinates, but couldn't get address. Starting search...", "info");
+                        addressInput.value = `Lat: ${userCurrentCoords.lat.toFixed(4)}, Lon: ${userCurrentCoords.lon.toFixed(4)}`;
+                        findProviders(true); // Pass true to indicate new search
+                    }
+                },
+                (err) => {
+                    console.warn(`Geolocation error: ${err.message}`);
+                    let errorMsg = "Could not get your location.";
+                    if (err.code === 1) errorMsg = "Please allow location access to use this feature.";
+                    showStatus(errorMsg, "error");
+                    getLocationBtn.disabled = false;
+                    findBtn.disabled = false;
+                }
+            );
         }
-        cols.push(cur);
-        const obj = {};
-        headers.forEach((h,i)=> obj[h] = cols[i] ?? '');
-        if (obj.lat && obj.lon){ obj.lat = Number(obj.lat); obj.lon = Number(obj.lon); }
-        if (obj.types) obj.types = String(obj.types).split(/;\s*/).filter(Boolean);
-        obj.acceptsMedicaid = String(obj.acceptsMedicaid||'').toLowerCase().startsWith('t') || obj.acceptsMedicaid==='1' || obj.acceptsMedicaid==='yes';
-        obj.acceptsMedicare = String(obj.acceptsMedicare||'').toLowerCase().startsWith('t') || obj.acceptsMedicare==='1' || obj.acceptsMedicare==='yes';
-        obj.telehealth = String(obj.telehealth||'').toLowerCase().startsWith('t') || obj.telehealth==='1' || obj.telehealth==='yes';
-        obj.id = 'u_' + Math.random().toString(36).slice(2,9);
-        return obj;
-      });
-    }
+        getLocationBtn.addEventListener('click', handleGetLocation);
 
-    // ====== Geolocation & Geocoding ======
-    async function useMyLocation(){
-      setBusy(true);
-      return new Promise((resolve)=>{
-        if (!('geolocation' in navigator)){
-          alert('Geolocation is not supported by your browser.');
-          setBusy(false); resolve(false); return;
+        async function reverseGeocode(lat, lon) {
+            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`;
+            try {
+                const response = await fetch(url, { headers: { 'User-Agent': 'ProviderFinderWebApp/1.1' } });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                if (data && data.display_name) {
+                    if (data.address) {
+                        const { road, house_number, city, town, village, state, postcode } = data.address;
+                        return `${house_number || ''} ${road || ''}, ${city || town || village || ''}, ${state || ''} ${postcode || ''}`.replace(" ,", ",").replace("  ", " ").trim();
+                    }
+                    return data.display_name;
+                }
+                throw new Error("Could not determine address.");
+            } catch (err) {
+                console.error("Reverse geocoding error:", err);
+                throw new Error("Could not determine address from coordinates.");
+            }
         }
-        navigator.geolocation.getCurrentPosition(async pos => {
-          const {latitude: lat, longitude: lon} = pos.coords;
-          state.user = { lat, lon, label: `${lat.toFixed(5)}, ${lon.toFixed(5)}` };
-          updateLocSummary();
-          applyFilters();
-          setBusy(false);
-          resolve(true);
-        }, err => {
-          alert('Unable to get your location (' + err.message + ').');
-          setBusy(false); resolve(false);
-        }, { enableHighAccuracy:true, timeout: 10000, maximumAge: 60000 });
-      });
-    }
 
-    async function geocodeAddress(){
-      const q = document.getElementById('address').value.trim();
-      if (!q) { alert('Please enter an address or place.'); return; }
-      setBusy(true);
-      try{
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`;
-        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-        const data = await res.json();
-        if (!Array.isArray(data) || !data.length){ alert('No results found. Try a more specific address.'); setBusy(false); return; }
-        const best = data[0];
-        const lat = Number(best.lat), lon = Number(best.lon);
-        state.user = { lat, lon, label: best.display_name };
-        updateLocSummary();
-        applyFilters();
-      } catch(e){
-        console.error(e); alert('Geocoding failed.');
-      } finally { setBusy(false); }
-    }
-
-    function clearLocation(){ state.user = { lat:null, lon:null, label:null }; updateLocSummary(); applyFilters(); }
-    function updateLocSummary(){
-      els.locSummary.textContent = state.user.lat!=null ? `${state.user.label}` : 'not set';
-    }
-
-    function setBusy(isBusy){
-      document.querySelectorAll('button').forEach(b=> b.disabled = isBusy);
-    }
-
-    // ====== Event wiring ======
-    document.getElementById('btn-geolocate').addEventListener('click', useMyLocation);
-    document.getElementById('btn-clear').addEventListener('click', clearLocation);
-    document.getElementById('btn-geocode').addEventListener('click', geocodeAddress);
-    document.getElementById('btn-refresh').addEventListener('click', applyFilters);
-    document.getElementById('units').addEventListener('change', (e)=>{ state.units=e.target.value; document.getElementById('unit-label').textContent = state.units==='km'?'kilometers':'miles'; applyFilters(); });
-    document.getElementById('radius').addEventListener('input', (e)=>{ state.radius = Number(e.target.value); els.radiusValue.textContent = state.radius; applyFilters(); });
-    document.getElementById('q').addEventListener('input', (e)=>{ state.q = e.target.value; applyFilters(); });
-    document.getElementById('type').addEventListener('change', (e)=>{ state.type = e.target.value; applyFilters(); });
-    document.getElementById('insurance').addEventListener('change', (e)=>{ state.insurance = e.target.value; applyFilters(); });
-    document.getElementById('openNow').addEventListener('change', (e)=>{ state.openNow = e.target.value; applyFilters(); });
-    document.getElementById('sort').addEventListener('change', (e)=>{ state.sort = e.target.value; applyFilters(); });
-
-    document.getElementById('btn-export').addEventListener('click', ()=>{
-      const list = computeDistances(PROVIDERS).filter(p=>providerMatchesFilters(p,p.distance));
-      const csv = toCSV(list);
-      download('mental-health-services.csv', csv);
-    });
-
-    document.getElementById('file-input').addEventListener('change', async (e)=>{
-      const file = e.target.files?.[0]; if (!file) return;
-      const text = await file.text();
-      try{
-        let rows = [];
-        if (file.name.toLowerCase().endsWith('.json')){
-          const data = JSON.parse(text);
-          rows = Array.isArray(data) ? data : (data.providers || []);
-        } else {
-          rows = parseCSV(text);
+        async function geocodeAddress(address) {
+            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
+            try {
+                const response = await fetch(url, { headers: { 'User-Agent': 'ProviderFinderWebApp/1.1' } });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+                }
+                throw new Error("Address not found.");
+            } catch (err) {
+                console.error("Geocoding error:", err);
+                throw new Error("Could not find coordinates for the address.");
+            }
         }
-        const valid = rows.filter(r=> typeof r.lat==='number' && typeof r.lon==='number' && !isNaN(r.lat) && !isNaN(r.lon));
-        if (!valid.length){ alert('No valid rows found. Make sure your file has lat, lon columns.'); return; }
-        PROVIDERS = [...PROVIDERS, ...valid];
-        applyFilters();
-        alert(`Imported ${valid.length} provider(s).`);
-      } catch(err){ console.error(err); alert('Failed to import file. Ensure it is valid CSV or JSON.'); }
-      e.target.value = '';
-    });
 
-    // Initial render
-    updateLocSummary();
-    applyFilters();
-  </script>
+        // REMOVED: Haversine distance. This is now done on the server.
+
+        // --- Show/Hide Status Message ---
+        function showStatus(message, type = 'info') {
+            statusMessage.textContent = message;
+            statusMessage.className = `text-sm text-center p-3 rounded-lg ${
+                type === 'error' ? 'bg-red-100 text-red-700' :
+                type === 'success' ? 'bg-green-100 text-green-700' :
+                'bg-blue-100 text-blue-700'
+            } block`;
+        }
+        function hideStatus() {
+            statusMessage.className = 'hidden';
+        }
+
+        // REMOVED: rowToObject helper. The server will send clean JSON.
+
+        // --- Main Search Function (REFACTORED) ---
+        async function findProviders(isNewSearch = true) {
+            if (isSearching) return;
+            isSearching = true;
+
+            // Reset results if it's a new search
+            if (isNewSearch) {
+                currentOffset = 0;
+                allFoundProviders = [];
+            }
+
+            setLoadingState(true);
+
+            let coordsToUse;
+            if (isNewSearch && userCurrentCoords) {
+                showStatus("Using your current location...", "info");
+                coordsToUse = userCurrentCoords;
+                userCurrentCoords = null; // Clear it after use
+            } else if (isNewSearch) {
+                const locationStr = addressInput.value.trim();
+                if (!locationStr) {
+                    showStatus("Please enter an address or ZIP code.", "error");
+                    setLoadingState(false);
+                    return;
+                }
+                showStatus("Getting your location...", "info");
+                try {
+                    coordsToUse = await geocodeAddress(locationStr);
+                } catch (err) {
+                    showStatus(err.message, "error");
+                    setLoadingState(false);
+                    return;
+                }
+            } else {
+                // This is a "Load More" call, we reuse the last coordinates.
+                // We need to get them from the address input again if not stored.
+                // A better way is to store them globally.
+                // Let's re-geocode. (A more robust app would store this.)
+                const locationStr = addressInput.value.trim();
+                showStatus("Loading more results...", "info");
+                try {
+                     coordsToUse = await geocodeAddress(locationStr);
+                } catch (err) {
+                    showStatus(err.message, "error");
+                    setLoadingState(false);
+                    return;
+                }
+            }
+
+            if (!coordsToUse) {
+                 showStatus("Could not determine location for search.", "error");
+                 setLoadingState(false);
+                 return;
+            }
+
+            showStatus("Searching for providers...", "info");
+
+            const radius = parseFloat(radiusSelect.value);
+            const selectedTaxonomy = taxonomySelect.value;
+
+            // --- NEW: API Call ---
+            try {
+                const url = new URL(API_URL);
+                url.searchParams.append('lat', coordsToUse.lat);
+                url.searchParams.append('lon', coordsToUse.lon);
+                url.searchParams.append('radius', radius);
+                url.searchParams.append('taxonomy', selectedTaxonomy);
+                url.searchParams.append('offset', currentOffset);
+
+                const response = await fetch(url);
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error || `Server error: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Append new results
+                allFoundProviders.push(...data.results);
+                totalFound = data.total; // Update total count
+
+                displayResults();
+                hideStatus();
+
+            } catch (err) {
+                console.error("API Search error:", err);
+                showStatus(`Search failed: ${err.message}`, "error");
+                // If it was a "Load More" that failed, reset offset
+                if (!isNewSearch) currentOffset -= RESULTS_PER_PAGE;
+            } finally {
+                setLoadingState(false);
+            }
+        }
+        findBtn.addEventListener('click', () => findProviders(true));
+
+        // --- Helper to manage loading state ---
+        function setLoadingState(isLoading) {
+            isSearching = isLoading;
+            findBtn.disabled = isLoading;
+            getLocationBtn.disabled = isLoading;
+            loadMoreBtn.disabled = isLoading;
+            findBtn.textContent = isLoading ? "Searching..." : "Find Providers";
+            if (isLoading) loadMoreBtn.textContent = "Loading...";
+            else loadMoreBtn.textContent = "Load More";
+        }
+
+        // --- Function to display results (REFACTORED) ---
+        function displayResults() {
+            if (resultsPlaceholder) {
+                resultsPlaceholder.style.display = 'none';
+            }
+
+            // For "Load More", we append instead of clearing
+            // Let's change that: clear and re-render all is simpler.
+            resultsContainer.innerHTML = ''; // Clear all results
+
+            if (allFoundProviders.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="text-center text-gray-500 pt-16">
+                        <svg class="w-12 h-12 mx-auto text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                             <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.964 1.769a.75.75 0 01-1.214-.882c.28-.314.63-.58 1.003-.79.744-.36 1.45-.997 1.963-1.768a.75.75 0 01.34-1.353c.644-.042 1.255-.11 1.85-.169a.75.75 0 00.728-.734c.002-.516-.076-1.03-.22-1.521a.75.75 0 00-.734-.728c-.516.002-1.03.076-1.521.22a.75.75 0 00-.728.734c.042.644.11 1.255.169 1.85a.75.75 0 01-1.353.34c-.508.771-1.218 1.408-1.963 1.768-.373.18-.722.42-1.003.79a.75.75 0 01-1.214-.882c.514-.77 1.22-1.407 1.964-1.769.24-.116.467-.263.67-.442 1.172-1.025 1.172-2.687 0-3.712-1.171-1.025-3.071-1.025-4.242 0-1.172 1.025-1.172 2.687 0 3.712zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z" />
+                        </svg>
+                        <p class="mt-2 font-semibold">No Providers Found</p>
+                        <p class="text-sm">Try expanding your search radius or changing the provider type.</p>
+                    </div>
+                `;
+            }
+
+            // Render all providers currently in the 'allFoundProviders' array
+            allFoundProviders.forEach(provider => {
+                const card = document.createElement('div');
+                card.className = "p-4 bg-gray-50 border border-gray-200 rounded-lg shadow-sm transition-all duration-200 hover:shadow-md";
+
+                let mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(provider.Name + ", " + provider.Address + ", " + provider.City + ", " + provider.State)}`;
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-lg font-semibold text-blue-700">${provider.Name}</h3>
+                            <p class="text-sm text-gray-600">${provider.Address}</p>
+                            <p class="text-sm text-gray-600">${provider.City}, ${provider.State} ${provider.PostalCode}</p>
+                            <p class="text-xs text-gray-500 mt-1">NPI: ${provider.NPI}</p>
+                        </div>
+                        <div class="text-right flex-shrink-0 ml-4">
+                            <p classR="text-lg font-bold text-gray-800">${provider.distance.toFixed(1)} mi</p>
+                            <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" class="text-sm text-blue-500 hover:underline">
+                                View Map
+                            </a>
+                        </div>
+                    </div>
+                `;
+                resultsContainer.appendChild(card);
+            });
+
+            // Update count
+            resultsCount.textContent = `Showing ${allFoundProviders.length} of ${totalFound} results.`;
+
+            // Show or hide the "Load More" button
+            if (totalFound > allFoundProviders.length) {
+                loadMoreContainer.style.display = 'block';
+            } else {
+                loadMoreContainer.style.display = 'none';
+            }
+        }
+
+        // --- Load More Event Listener (REFACTORED) ---
+        loadMoreBtn.addEventListener('click', () => {
+            currentOffset += RESULTS_PER_PAGE; // Increment the offset
+            findProviders(false); // Call findProviders, indicating it's NOT a new search
+        });
+
+    </script>
 </body>
 </html>
-
 
