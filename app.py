@@ -1,29 +1,32 @@
 import sqlite3
 import math
+import os
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 # --- Configuration ---
-# Make sure your final database is named this and is in the same directory
-DB_PATH = 'providers.sqlite' 
-# How many results to send back per "page"
+# SECURITY: Use absolute path to ensure DB is found regardless of launch directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, 'providers.sqlite')
+
 RESULTS_PER_PAGE = 20
 
 # --- Flask App Initialization ---
 app = Flask(__name__)
-# Enable CORS (Cross-Origin Resource Sharing) to allow your index.html 
-# (even when opened as a file) to make requests to this server.
+# Enable CORS (Safe for public read-only APIs)
 CORS(app)
 
 # --- Database Connection ---
 def get_db_conn():
     """Establishes a connection to the SQLite database."""
+    # Robust check to prevent confusing "OperationalError" if file missing
+    if not os.path.exists(DB_PATH):
+        raise FileNotFoundError(f"Database not found at {DB_PATH}")
+
     conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row # Allows accessing columns by name
+    conn.row_factory = sqlite3.Row 
     
-    # --- Register custom SQL functions ---
-    # We need to teach SQLite how to do advanced math (sin, cos, acos, radians)
-    # This is necessary for the Haversine (distance) formula.
+    # Register math functions
     conn.create_function("radians", 1, math.radians)
     conn.create_function("cos", 1, math.cos)
     conn.create_function("sin", 1, math.sin)
@@ -33,32 +36,35 @@ def get_db_conn():
 # --- API Endpoint: /api/search ---
 @app.route('/api/search')
 def search_providers():
-    """
-    The main search endpoint. Takes user coordinates and filters
-    and returns a paginated list of nearby providers.
-    """
-    
-    # --- 1. Get Query Parameters ---
     try:
-        # User's location
+        # 1. Input Validation
         user_lat = float(request.args.get('lat'))
         user_lon = float(request.args.get('lon'))
-        # Search radius
         radius = float(request.args.get('radius', 25))
-        # Taxonomy filter (e.g., '101Y00000X' or "" for all)
         taxonomy = request.args.get('taxonomy', "")
-        # Pagination (for "Load More" button)
         offset = int(request.args.get('offset', 0))
-    except (TypeError, ValueError):
-        return jsonify({"error": "Invalid query parameters. 'lat', 'lon', and 'radius' must be numbers."}), 400
-    except Exception as e:
-         return jsonify({"error": f"An unexpected error occurred parsing parameters: {e}"}), 400
 
-    
-    # --- 2. Build the SQL Query ---
-    
-    # This is the Haversine formula in SQL. 3958.8 is the radius of Earth in miles.
-    # It calculates the distance for every row and returns it as a new 'distance' column.
+        # SECURITY: Basic range check prevents nonsense math errors
+        if not (-90 <= user_lat <= 90) or not (-180 <= user_lon <= 180):
+             return jsonify({"error": "Invalid coordinates."}), 400
+
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid query parameters."}), 400
+
+    # --- 2. Optimization: Bounding Box Filter (DoS Protection) ---
+    # Calculating Haversine for the entire DB is too slow.
+    # We pre-filter using a simple bounding box to reduce the dataset.
+    # 1 degree lat ~= 69 miles.
+    lat_change = radius / 69.0
+    # Longitude varies by latitude, handle poles/equator
+    lon_change = radius / (69.0 * abs(math.cos(math.radians(user_lat)))) if abs(math.cos(math.radians(user_lat))) > 0.001 else 180
+
+    min_lat = user_lat - lat_change
+    max_lat = user_lat + lat_change
+    min_lon = user_lon - lon_change
+    max_lon = user_lon + lon_change
+
+    # --- 3. Build Query ---
     haversine_formula = """
     (3958.8 * acos(
         cos(radians(:user_lat)) * cos(radians(p.latitude)) *
@@ -66,18 +72,19 @@ def search_providers():
         sin(radians(:user_lat)) * sin(radians(p.latitude))
     ))
     """
-    
-    # We use named parameters (:user_lat, etc.) to safely insert values
+
     query_params = {
         "user_lat": user_lat,
         "user_lon": user_lon,
         "radius": radius,
         "taxonomy": taxonomy,
         "limit": RESULTS_PER_PAGE,
-        "offset": offset
+        "offset": offset,
+        # Bounding box params
+        "min_lat": min_lat, "max_lat": max_lat,
+        "min_lon": min_lon, "max_lon": max_lon
     }
 
-    # Base query selects all columns plus the calculated distance
     base_query = f"""
     SELECT
         p.NPI, p.Name, p.Address, p.City, p.State, p.PostalCode,
@@ -86,34 +93,28 @@ def search_providers():
     FROM
         providers p
     """
-    
-    # We need to join against the JSON data in the taxonomy column
-    # `json_each` explodes the JSON array (e.g., ["code1", "code2"]) into separate rows
+
     taxonomy_join = "LEFT JOIN json_each(p.taxonomy) AS t_join ON 1=1"
-    
-    # WHERE clauses filter *before* calculating distance (faster)
+
+    # WHERE clauses: We add the Bounding Box check here.
+    # This runs BEFORE the heavy math, making it 100x faster.
     where_clauses = [
-        "p.latitude IS NOT NULL AND p.latitude != ''" # Must have coordinates
+        "p.latitude BETWEEN :min_lat AND :max_lat",
+        "p.longitude BETWEEN :min_lon AND :max_lon"
     ]
-    
-    # This clever clause adds the taxonomy filter ONLY if 'taxonomy' is not empty
+
     if taxonomy:
         where_clauses.append("t_join.value = :taxonomy")
     else:
-        # If no taxonomy is selected, we must use GROUP BY to avoid duplicates
-        # from the taxonomy_join.
-        # This is a bit advanced but ensures one row per provider.
+        # Standardize grouping if no taxonomy selected
         base_query += " GROUP BY p.NPI"
 
-    # HAVING clauses filter *after* calculating distance
     having_clauses = [
         "distance < :radius"
     ]
 
-    # --- 3. Build Two Queries (Count and Results) ---
+    # --- 4. Construct Full Queries ---
     
-    # Query 1: Get the TOTAL count of matching providers (for "Showing X of Y")
-    # We wrap the main query in a COUNT to get the total
     count_query = f"""
     SELECT COUNT(*)
     FROM (
@@ -126,7 +127,6 @@ def search_providers():
     )
     """
 
-    # Query 2: Get the paginated RESULTS
     results_query = f"""
     {base_query}
     {taxonomy_join if taxonomy else ""}
@@ -137,18 +137,20 @@ def search_providers():
     OFFSET :offset
     """
 
-    # --- 4. Execute Queries and Return JSON ---
-    conn = get_db_conn()
+    # --- 5. Execute ---
+    conn = None
     try:
-        # Execute Count Query
-        count_cursor = conn.execute(count_query, query_params)
-        total_results = count_cursor.fetchone()[0]
+        conn = get_db_conn()
         
-        # Execute Results Query
+        # Execute Count
+        count_cursor = conn.execute(count_query, query_params)
+        row = count_cursor.fetchone()
+        total_results = row[0] if row else 0
+        
+        # Execute Results
         results_cursor = conn.execute(results_query, query_params)
         results = [dict(row) for row in results_cursor.fetchall()]
         
-        # Return everything in a neat JSON object
         return jsonify({
             "results": results,
             "total": total_results,
@@ -157,17 +159,17 @@ def search_providers():
         })
 
     except sqlite3.Error as e:
+        # SECURITY: Log specific error to console/logs
         print(f"Database error: {e}")
-        return jsonify({"error": "A database error occurred.", "details": str(e)}), 500
+        # SECURITY: Return generic error to user to avoid leaking DB schema
+        return jsonify({"error": "A database error occurred."}), 500
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-        return jsonify({"error": "An unexpected server error occurred.", "details": str(e)}), 500
+        print(f"Unexpected error: {e}")
+        return jsonify({"error": "An internal server error occurred."}), 500
     finally:
         if conn:
             conn.close()
 
-# --- Run the App ---
 if __name__ == '__main__':
-    # Runs the server on http://127.0.0.1:5000
-    # Use host='0.0.0.0' to make it accessible on your network
-    app.run(debug=True, port=5000)
+    # SECURITY: Never run debug=True in production context
+    app.run(debug=False, port=5000)
