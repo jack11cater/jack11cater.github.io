@@ -148,6 +148,7 @@
         let totalFound = 0; // Total available results on the server
         let userCurrentCoords = null;
         let isSearching = false; // Prevent multiple simultaneous searches
+        let lastUsedCoords = null; 
 
         // --- DOM Elements ---
         const findBtn = document.getElementById('find-btn');
@@ -161,6 +162,7 @@
         const loadMoreContainer = document.getElementById('load-more-container');
         const loadMoreBtn = document.getElementById('load-more-btn');
         const getLocationBtn = document.getElementById('get-location-btn');
+        const RESULTS_PER_PAGE = 20;
 
         // REMOVED: initDb() function is no longer needed.
 
@@ -277,7 +279,6 @@
             if (isNewSearch && userCurrentCoords) {
                 showStatus("Using your current location...", "info");
                 coordsToUse = userCurrentCoords;
-                userCurrentCoords = null; // Clear it after use
             } else if (isNewSearch) {
                 const locationStr = addressInput.value.trim();
                 if (!locationStr) {
@@ -288,6 +289,7 @@
                 showStatus("Getting your location...", "info");
                 try {
                     coordsToUse = await geocodeAddress(locationStr);
+                    lastUsedCoords = coordsToUse;
                 } catch (err) {
                     showStatus(err.message, "error");
                     setLoadingState(false);
@@ -295,24 +297,12 @@
                 }
             } else {
                 // This is a "Load More" call, we reuse the last coordinates.
-                // We need to get them from the address input again if not stored.
-                // A better way is to store them globally.
-                // Let's re-geocode. (A more robust app would store this.)
-                const locationStr = addressInput.value.trim();
-                showStatus("Loading more results...", "info");
-                try {
-                     coordsToUse = await geocodeAddress(locationStr);
-                } catch (err) {
-                    showStatus(err.message, "error");
+                coordsToUse = lastUsedCoords;
+                if (!coordsToUse) {
+                    showStatus("Please start a new search.", "error");
                     setLoadingState(false);
                     return;
                 }
-            }
-
-            if (!coordsToUse) {
-                 showStatus("Could not determine location for search.", "error");
-                 setLoadingState(false);
-                 return;
             }
 
             showStatus("Searching for providers...", "info");
@@ -404,7 +394,7 @@
                             <p class="text-xs text-gray-500 mt-1">NPI: ${provider.NPI}</p>
                         </div>
                         <div class="text-right flex-shrink-0 ml-4">
-                            <p classR="text-lg font-bold text-gray-800">${provider.distance.toFixed(1)} mi</p>
+                            <p class="text-lg font-bold text-gray-800">${provider.distance.toFixed(1)} mi</p>
                             <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" class="text-sm text-blue-500 hover:underline">
                                 View Map
                             </a>
