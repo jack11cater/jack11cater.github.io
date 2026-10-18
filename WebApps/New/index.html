@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindBridge — Mental Health Provider Directory</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ── Reset & Base ─────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --forest:        #2C4A3E;
+            --forest-light:  #3D6B5E;
+            --sage:          #7BA99A;
+            --sage-light:    #B8D4CC;
+            --cream:         #FAF7F2;
+            --white:         #FFFFFF;
+            --terracotta:    #C4714A;
+            --terracotta-lt: #E8956E;
+            --text-dark:     #1C2B27;
+            --text-mid:      #4A6560;
+            --text-light:    #8AA39D;
+            --border:        #DDE8E5;
+            --shadow:        rgba(44,74,62,0.10);
+            --shadow-lg:     rgba(44,74,62,0.22);
+        }
+
+        html, body {
+            height: 100%;
+            font-family: 'DM Sans', sans-serif;
+            background: var(--cream);
+            color: var(--text-dark);
+        }
+
+        /* Subtle grain overlay */
+        body::before {
+            content: '';
+            position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.022;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            background-size: 200px;
+        }
+
+        /* ── Typography helpers ───────────────────────────────────── */
+        .serif { font-family: 'Playfair Display', serif; }
+
+        /* ── Header ──────────────────────────────────────────────── */
+        #app-header {
+            position: relative; z-index: 10;
+            background: var(--forest);
+            padding: 14px 28px;
+            display: flex; align-items: center; justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .header-brand { display: flex; align-items: center; gap: 11px; }
+        .header-logo {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: var(--sage-light);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .header-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem; font-weight: 600;
+            color: var(--cream); line-height: 1.1;
+        }
+        .header-tagline {
+            font-size: 0.65rem; color: var(--sage);
+            letter-spacing: 0.09em; text-transform: uppercase; margin-top: 2px;
+        }
+        #provider-signin-btn {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.78rem; color: var(--sage-light);
+            background: transparent;
+            border: 1px solid rgba(184,212,204,0.35);
+            padding: 7px 16px; border-radius: 20px; cursor: pointer;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+            letter-spacing: 0.02em;
+        }
+        #provider-signin-btn:hover {
+            background: rgba(184,212,204,0.12);
+            color: #fff; border-color: var(--sage-light);
+        }
+        #dashboard-user-pill {
+            display: flex; align-items: center; gap: 9px;
+        }
+        .user-dot {
+            width: 8px; height: 8px; border-radius: 50%; background: var(--sage);
+        }
+        #dashboard-user-name {
+            font-size: 0.8rem; color: var(--sage-light);
+        }
+
+        /* ── App shell ───────────────────────────────────────────── */
+        #app-body {
+            position: relative; z-index: 1;
+            display: flex;
+            height: calc(100vh - 62px);
+            overflow: hidden;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           SEARCH VIEW
+        ═══════════════════════════════════════════════════════════ */
+        #view-search { display: flex; width: 100%; height: 100%; }
+
+        /* Sidebar */
+        #search-sidebar {
+            width: 300px; flex-shrink: 0;
+            background: var(--white);
+            border-right: 1px solid var(--border);
+            display: flex; flex-direction: column;
+            overflow-y: auto;
+        }
+        .sidebar-inner { padding: 26px 22px; }
+        .sidebar-heading {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.35rem; font-weight: 600;
+            color: var(--text-dark); line-height: 1.3; margin-bottom: 5px;
+        }
+        .sidebar-sub { font-size: 0.8rem; color: var(--text-light); margin-bottom: 26px; line-height: 1.5; }
+
+        .field-group { margin-bottom: 16px; }
+        .field-label {
+            display: block;
+            font-size: 0.72rem; font-weight: 600;
+            color: var(--text-mid); letter-spacing: 0.07em;
+            text-transform: uppercase; margin-bottom: 6px;
+        }
+        .field-input, .field-select {
+            width: 100%; padding: 10px 13px;
+            border: 1.5px solid var(--border); border-radius: 9px;
+            font-size: 0.875rem; font-family: 'DM Sans', sans-serif;
+            color: var(--text-dark); background: var(--cream);
+            outline: none;
+            transition: border-color 0.18s, box-shadow 0.18s;
+            appearance: none; -webkit-appearance: none;
+        }
+        .field-input:focus, .field-select:focus {
+            border-color: var(--sage);
+            box-shadow: 0 0 0 3px rgba(123,169,154,0.18);
+        }
+        .input-wrap { position: relative; }
+        .input-icon {
+            position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+            color: var(--text-light); cursor: pointer;
+            background: none; border: none; padding: 2px;
+            display: flex; align-items: center;
+            transition: color 0.18s;
+        }
+        .input-icon:hover { color: var(--forest); }
+        #address-input { padding-right: 36px; }
+
+        #find-btn {
+            width: 100%; padding: 13px;
+            background: var(--forest); color: #fff;
+            border: none; border-radius: 9px; cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem; font-weight: 600; letter-spacing: 0.03em;
+            transition: background 0.18s, transform 0.1s;
+            margin-top: 4px;
+        }
+        #find-btn:hover { background: var(--forest-light); }
+        #find-btn:active { transform: scale(0.99); }
+        #find-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+        #status-message {
+            display: none;
+            margin-top: 14px;
+            font-size: 0.82rem; text-align: center;
+            padding: 10px 14px; border-radius: 9px;
+        }
+        #status-message.info    { display:block; background: rgba(123,169,154,0.12); color: var(--forest); }
+        #status-message.success { display:block; background: rgba(44,74,62,0.08);   color: var(--forest); }
+        #status-message.error   { display:block; background: rgba(196,113,74,0.1);  color: var(--terracotta); }
+
+        /* Results panel */
+        #results-panel {
+            flex: 1; display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+        #results-bar {
+            padding: 14px 24px;
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            flex-shrink: 0;
+        }
+        #results-count { font-size: 0.82rem; color: var(--text-mid); }
+        #results-count strong { color: var(--text-dark); font-weight: 600; }
+        .sort-label { font-size: 0.75rem; color: var(--text-light); }
+
+        #results-container {
+            flex: 1; overflow-y: auto;
+            padding: 18px 24px;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        #results-container::-webkit-scrollbar { width: 6px; }
+        #results-container::-webkit-scrollbar-thumb { background: var(--sage-light); border-radius: 10px; }
+        #results-container::-webkit-scrollbar-track { background: transparent; }
+
+        /* Empty state */
+        #results-placeholder {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            flex: 1; padding: 60px 40px; text-align: center;
+            color: var(--text-light); gap: 12px;
+        }
+        .empty-circle {
+            width: 68px; height: 68px; border-radius: 50%;
+            background: var(--border);
+            display: flex; align-items: center; justify-content: center;
+        }
+        #results-placeholder p { font-size: 0.875rem; line-height: 1.6; max-width: 220px; }
+
+        /* Provider card */
+        .prov-card {
+            background: var(--white);
+            border: 1.5px solid var(--border);
+            border-radius: 13px; padding: 16px 18px;
+            display: flex; align-items: flex-start; gap: 14px;
+            transition: border-color 0.18s, box-shadow 0.18s, transform 0.15s;
+        }
+        .prov-card:hover {
+            border-color: var(--sage);
+            box-shadow: 0 4px 18px var(--shadow);
+            transform: translateY(-1px);
+        }
+        .prov-avatar {
+            width: 42px; height: 42px; border-radius: 11px;
+            background: var(--sage-light); flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Playfair Display', serif;
+            font-size: 0.95rem; font-weight: 700; color: var(--forest);
+        }
+        .prov-avatar.verified-av { background: var(--forest); color: var(--sage-light); }
+        .prov-info { flex: 1; min-width: 0; }
+        .prov-name-row { display: flex; align-items: center; gap: 7px; margin-bottom: 2px; flex-wrap: wrap; }
+        .prov-name { font-size: 0.93rem; font-weight: 600; color: var(--text-dark); }
+        .verified-badge {
+            font-size: 0.63rem; font-weight: 600;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            background: rgba(44,74,62,0.08); color: var(--forest);
+            padding: 2px 8px; border-radius: 20px; flex-shrink: 0;
+        }
+        .prov-type { font-size: 0.77rem; color: var(--terracotta); font-weight: 500; margin-bottom: 4px; }
+        .prov-address { font-size: 0.78rem; color: var(--text-light); }
+        .prov-phone { font-size: 0.78rem; color: var(--text-mid); margin-top: 3px; }
+        .prov-right {
+            display: flex; flex-direction: column;
+            align-items: flex-end; gap: 5px; flex-shrink: 0;
+        }
+        .prov-distance { font-size: 1rem; font-weight: 700; color: var(--text-dark); }
+        .prov-distance span { font-size: 0.7rem; font-weight: 400; color: var(--text-light); }
+        .map-link { font-size: 0.74rem; color: var(--sage); text-decoration: none; }
+        .map-link:hover { color: var(--forest); text-decoration: underline; }
+        .accepting-yes { font-size: 0.7rem; color: var(--forest-light); font-weight: 600; }
+        .accepting-no  { font-size: 0.7rem; color: var(--text-light); }
+
+        /* Load more */
+        #load-more-container {
+            display: none;
+            padding: 14px 24px;
+            border-top: 1px solid var(--border);
+            text-align: center; flex-shrink: 0;
+        }
+        #load-more-btn {
+            padding: 10px 28px;
+            background: var(--border); color: var(--text-mid);
+            border: none; border-radius: 9px; cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.875rem; font-weight: 600;
+            transition: background 0.18s;
+        }
+        #load-more-btn:hover { background: var(--sage-light); color: var(--forest); }
+        #load-more-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+        /* ═══════════════════════════════════════════════════════════
+           PROVIDER SIGN-IN MODAL
+        ═══════════════════════════════════════════════════════════ */
+        #modal-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(28,43,39,0.58);
+            backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+            z-index: 200;
+            align-items: center; justify-content: center;
+            padding: 20px;
+            animation: fadeIn 0.2s ease;
+        }
+        #modal-overlay.open { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        #signin-modal {
+            background: var(--white);
+            border-radius: 20px; padding: 38px;
+            width: 100%; max-width: 400px;
+            position: relative;
+            box-shadow: 0 24px 60px var(--shadow-lg);
+            animation: slideUp 0.25s ease;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        #modal-close {
+            position: absolute; top: 14px; right: 14px;
+            width: 28px; height: 28px; border-radius: 7px;
+            background: var(--border); border: none; cursor: pointer;
+            color: var(--text-mid); font-size: 0.9rem;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.18s;
+        }
+        #modal-close:hover { background: var(--sage-light); }
+
+        .modal-eyebrow {
+            font-size: 0.68rem; font-weight: 600;
+            color: var(--terracotta); letter-spacing: 0.1em;
+            text-transform: uppercase; margin-bottom: 7px;
+        }
+        .modal-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.55rem; font-weight: 700;
+            color: var(--text-dark); margin-bottom: 6px;
+        }
+        .modal-sub {
+            font-size: 0.81rem; color: var(--text-light);
+            margin-bottom: 26px; line-height: 1.55;
+        }
+        .modal-field { margin-bottom: 14px; }
+        .modal-input {
+            width: 100%; padding: 11px 13px;
+            border: 1.5px solid var(--border); border-radius: 9px;
+            font-size: 0.875rem; font-family: 'DM Sans', sans-serif;
+            color: var(--text-dark); background: var(--cream);
+            outline: none;
+            transition: border-color 0.18s, box-shadow 0.18s;
+        }
+        .modal-input:focus {
+            border-color: var(--sage);
+            box-shadow: 0 0 0 3px rgba(123,169,154,0.18);
+        }
+        .modal-forgot {
+            text-align: right; margin-bottom: 14px;
+            font-size: 0.76rem; color: var(--sage); cursor: pointer;
+        }
+        #modal-signin-btn {
+            width: 100%; padding: 13px;
+            background: var(--forest); color: #fff;
+            border: none; border-radius: 9px; cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem; font-weight: 600;
+            transition: background 0.18s;
+        }
+        #modal-signin-btn:hover { background: var(--forest-light); }
+        .modal-divider {
+            display: flex; align-items: center; gap: 12px;
+            margin: 18px 0;
+        }
+        .modal-divider-line { flex: 1; height: 1px; background: var(--border); }
+        .modal-divider-text { font-size: 0.73rem; color: var(--text-light); white-space: nowrap; }
+        #modal-claim-btn {
+            width: 100%; padding: 11px;
+            background: transparent; color: var(--forest);
+            border: 1.5px solid var(--border); border-radius: 9px; cursor: pointer;
+            font-family: 'DM Sans', sans-serif; font-size: 0.875rem; font-weight: 500;
+            transition: border-color 0.18s, background 0.18s;
+        }
+        #modal-claim-btn:hover {
+            border-color: var(--sage);
+            background: rgba(123,169,154,0.06);
+        }
+        #modal-error {
+            display: none;
+            font-size: 0.78rem; color: var(--terracotta);
+            background: rgba(196,113,74,0.08);
+            padding: 9px 12px; border-radius: 8px;
+            margin-bottom: 12px; text-align: center;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           PROVIDER DASHBOARD VIEW
+        ═══════════════════════════════════════════════════════════ */
+        #view-dashboard {
+            display: none; /* toggled by JS */
+            flex: 1; overflow-y: auto;
+            padding: 32px 36px;
+        }
+        #view-dashboard.active { display: block; }
+
+        .dash-eyebrow {
+            font-size: 0.7rem; font-weight: 600;
+            color: var(--terracotta); letter-spacing: 0.1em;
+            text-transform: uppercase; margin-bottom: 6px;
+        }
+        .dash-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.9rem; font-weight: 700;
+            color: var(--text-dark); margin-bottom: 4px;
+        }
+        .dash-sub { font-size: 0.83rem; color: var(--text-light); margin-bottom: 28px; }
+
+        .dash-stats {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 14px; margin-bottom: 26px;
+        }
+        .dash-stat {
+            background: var(--white);
+            border: 1.5px solid var(--border);
+            border-radius: 13px; padding: 18px 20px;
+        }
+        .dash-stat-label { font-size: 0.73rem; color: var(--text-light); font-weight: 500; margin-bottom: 5px; }
+        .dash-stat-val {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem; font-weight: 700; color: var(--forest);
+        }
+        .dash-stat-val.status-verified { font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600; color: var(--forest); }
+        .dash-stat-sub { font-size: 0.72rem; color: var(--sage); margin-top: 2px; }
+
+        .dash-section-title {
+            font-size: 0.76rem; font-weight: 600;
+            color: var(--text-mid); letter-spacing: 0.07em;
+            text-transform: uppercase; margin-bottom: 13px;
+        }
+
+        /* Listing card */
+        .listing-card {
+            background: var(--white);
+            border: 1.5px solid var(--border);
+            border-radius: 16px; overflow: hidden;
+            margin-bottom: 24px;
+        }
+        .listing-card-header {
+            background: var(--forest); padding: 20px 22px;
+            display: flex; align-items: center; gap: 15px;
+        }
+        .listing-avatar {
+            width: 50px; height: 50px; border-radius: 13px;
+            background: var(--sage-light);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.15rem; font-weight: 700; color: var(--forest);
+            flex-shrink: 0;
+        }
+        .listing-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.05rem; font-weight: 600; color: #fff;
+        }
+        .listing-npi { font-size: 0.73rem; color: var(--sage-light); margin-top: 2px; }
+
+        .status-banner {
+            margin: 18px 22px 0;
+            padding: 11px 15px; border-radius: 10px;
+            display: flex; align-items: flex-start; gap: 10px;
+            background: rgba(196,113,74,0.07);
+            border: 1px solid rgba(196,113,74,0.2);
+        }
+        .status-banner.verified-banner {
+            background: rgba(44,74,62,0.06);
+            border-color: rgba(44,74,62,0.16);
+        }
+        .status-banner-text { font-size: 0.79rem; color: var(--text-mid); line-height: 1.5; }
+        .status-banner-text strong { color: var(--text-dark); }
+
+        .listing-body { padding: 20px 22px; }
+        .listing-fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .listing-field { margin-bottom: 14px; }
+        .listing-field-label {
+            font-size: 0.7rem; font-weight: 600;
+            color: var(--text-light); letter-spacing: 0.07em;
+            text-transform: uppercase; margin-bottom: 5px;
+        }
+        .listing-field-val { font-size: 0.875rem; color: var(--text-dark); }
+        .listing-field-input, .listing-field-select {
+            width: 100%; padding: 9px 11px;
+            border: 1.5px solid var(--border); border-radius: 8px;
+            font-size: 0.875rem; font-family: 'DM Sans', sans-serif;
+            color: var(--text-dark); background: var(--cream);
+            outline: none;
+            transition: border-color 0.18s, box-shadow 0.18s;
+            appearance: none; -webkit-appearance: none;
+        }
+        .listing-field-input:focus, .listing-field-select:focus {
+            border-color: var(--sage);
+            box-shadow: 0 0 0 3px rgba(123,169,154,0.18);
+        }
+
+        .listing-actions {
+            padding: 15px 22px;
+            border-top: 1px solid var(--border);
+            display: flex; gap: 9px; align-items: center;
+        }
+        #dash-save-btn {
+            padding: 10px 22px;
+            background: var(--forest); color: #fff;
+            border: none; border-radius: 8px; cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.875rem; font-weight: 600;
+            transition: background 0.18s, opacity 0.18s;
+        }
+        #dash-save-btn:hover { background: var(--forest-light); }
+        #dash-save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        #dash-reset-btn {
+            padding: 10px 16px;
+            background: transparent; color: var(--text-mid);
+            border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer;
+            font-family: 'DM Sans', sans-serif; font-size: 0.875rem;
+            transition: border-color 0.18s, color 0.18s;
+        }
+        #dash-reset-btn:hover { border-color: var(--sage); color: var(--forest); }
+        #dash-signout-btn {
+            margin-left: auto;
+            padding: 10px 15px;
+            background: transparent; color: var(--text-light);
+            border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer;
+            font-family: 'DM Sans', sans-serif; font-size: 0.78rem;
+            transition: color 0.18s, border-color 0.18s;
+        }
+        #dash-signout-btn:hover { color: var(--terracotta); border-color: var(--terracotta); }
+
+        .nppes-note {
+            font-size: 0.76rem; color: var(--text-light); line-height: 1.6;
+        }
+        .nppes-note a { color: var(--sage); text-decoration: none; }
+        .nppes-note a:hover { text-decoration: underline; }
+
+        /* ── Toast ───────────────────────────────────────────────── */
+        #save-toast {
+            display: none;
+            position: fixed; bottom: 26px; left: 50%;
+            transform: translateX(-50%);
+            background: var(--forest); color: #fff;
+            padding: 11px 24px; border-radius: 30px;
+            font-size: 0.84rem; font-weight: 500;
+            box-shadow: 0 8px 24px var(--shadow-lg);
+            z-index: 300; white-space: nowrap;
+        }
+        #save-toast.show {
+            display: block;
+            animation: toastIn 0.28s ease, toastOut 0.28s ease 1.72s forwards;
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+            to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        @keyframes toastOut {
+            from { opacity: 1; }
+            to   { opacity: 0; }
+        }
+
+        /* ── Responsive ──────────────────────────────────────────── */
+        @media (max-width: 680px) {
+            #search-sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+            #view-search { flex-direction: column; }
+            #view-dashboard { padding: 20px 16px; }
+            .dash-stats { grid-template-columns: 1fr; }
+            .listing-fields-row { grid-template-columns: 1fr; }
+            .listing-actions { flex-wrap: wrap; }
+            #dash-signout-btn { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ══ HEADER ══════════════════════════════════════════════════ -->
+    <header id="app-header">
+        <div class="header-brand">
+            <div class="header-logo">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2C4A3E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/>
+                </svg>
+            </div>
+            <div>
+                <div class="header-title">MindBridge</div>
+                <div class="header-tagline">Provider Directory</div>
+            </div>
+        </div>
+
+        <!-- Shown on search view -->
+        <button id="provider-signin-btn">Are you a provider? Sign in →</button>
+
+        <!-- Shown on dashboard view (hidden by default) -->
+        <div id="dashboard-user-pill" style="display:none;">
+            <div class="user-dot"></div>
+            <span id="dashboard-user-name">Signed in</span>
+        </div>
+    </header>
+
+    <!-- ══ APP BODY ════════════════════════════════════════════════ -->
+    <div id="app-body">
+
+        <!-- ── SEARCH VIEW ──────────────────────────────────────── -->
+        <div id="view-search">
+
+            <!-- Sidebar -->
+            <aside id="search-sidebar">
+                <div class="sidebar-inner">
+                    <h2 class="sidebar-heading">Find mental health care near you</h2>
+                    <p class="sidebar-sub">Search verified providers by location and specialty.</p>
+
+                    <div class="field-group">
+                        <label class="field-label" for="address-input">Your Location</label>
+                        <div class="input-wrap">
+                            <input type="text" id="address-input" class="field-input"
+                                   placeholder="Address or ZIP code">
+                            <button id="get-location-btn" class="input-icon" title="Use my current location">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="10" r="3"/>
+                                    <path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 6.9 8 11.7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label class="field-label" for="radius-select">Search Radius</label>
+                        <select id="radius-select" class="field-select">
+                            <option value="5">5 miles</option>
+                            <option value="10">10 miles</option>
+                            <option value="25" selected>25 miles</option>
+                            <option value="50">50 miles</option>
+                            <option value="100">100 miles</option>
+                        </select>
+                    </div>
+
+                    <div class="field-group">
+                        <label class="field-label" for="taxonomy-select">Provider Type</label>
+                        <select id="taxonomy-select" class="field-select">
+                            <option value="">All Provider Types</option>
+                            <option value="2084P0800X">Psychology, Clinical</option>
+                            <option value="101Y00000X">Counselor</option>
+                            <option value="101YA0400X">Counselor, Addiction</option>
+                            <option value="101YM0800X">Counselor, Mental Health</option>
+                            <option value="103T00000X">Social Worker</option>
+                            <option value="103TA0700X">Social Worker, Clinical</option>
+                            <option value="207Q00000X">Psychiatry</option>
+                            <option value="207QA0000X">Psychiatry, Addiction</option>
+                        </select>
+                    </div>
+
+                    <button id="find-btn">Find Providers</button>
+
+                    <div id="status-message"></div>
+                </div>
+            </aside>
+
+            <!-- Results panel -->
+            <div id="results-panel">
+                <div id="results-bar">
+                    <p id="results-count">Search to see results.</p>
+                    <span class="sort-label" id="sort-label" style="display:none;">Sorted by distance</span>
+                </div>
+
+                <div id="results-container">
+                    <div id="results-placeholder">
+                        <div class="empty-circle">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#B8D4CC" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="m21 21-4.35-4.35"/>
+                            </svg>
+                        </div>
+                        <p>Enter your location and click <strong>Find Providers</strong> to see mental health professionals near you.</p>
+                    </div>
+                </div>
+
+                <div id="load-more-container">
+                    <button id="load-more-btn">Load More</button>
+                </div>
+            </div>
+        </div><!-- /#view-search -->
+
+        <!-- ── DASHBOARD VIEW ───────────────────────────────────── -->
+        <!--
+            TODO: This dashboard is a UI prototype. To make it functional you will need to:
+            1. Add POST /api/auth/login and POST /api/auth/logout endpoints to app.py
+            2. Add GET /api/provider/me and PATCH /api/provider/me endpoints for
+               fetching and saving the logged-in provider's editable fields
+            3. Add a GET /api/provider/stats endpoint for profile view counts
+            4. Replace the mock data below with real API calls
+            The NPI, Name, Address, and Specialty fields should remain read-only
+            as they are sourced from the NPI registry.
+        -->
+        <div id="view-dashboard">
+            <div class="dash-eyebrow">Provider Portal</div>
+            <h1 class="dash-title" id="dash-greeting">Welcome back.</h1>
+            <p class="dash-sub">Manage your listing as it appears to clients searching the directory.</p>
+
+            <div class="dash-stats">
+                <div class="dash-stat">
+                    <div class="dash-stat-label">Profile Views (30d)</div>
+                    <div class="dash-stat-val">—</div>
+                    <div class="dash-stat-sub">Analytics coming soon</div>
+                </div>
+                <div class="dash-stat">
+                    <div class="dash-stat-label">Listing Status</div>
+                    <div class="dash-stat-val status-verified">✓ Verified</div>
+                    <div class="dash-stat-sub">Identity confirmed</div>
+                </div>
+            </div>
+
+            <div class="dash-section-title">Your Listing</div>
+            <div class="listing-card">
+                <div class="listing-card-header">
+                    <div class="listing-avatar" id="dash-avatar">—</div>
+                    <div>
+                        <div class="listing-name" id="dash-listing-name">—</div>
+                        <div class="listing-npi" id="dash-listing-npi">NPI: —</div>
+                    </div>
+                </div>
+
+                <div class="status-banner verified-banner">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2C4A3E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    <div class="status-banner-text">
+                        <strong>Verified listing</strong> — Your NPI has been confirmed.
+                        Clients see a verified badge on your profile.
+                    </div>
+                </div>
+
+                <div class="listing-body">
+                    <!-- Read-only fields (from NPI record) -->
+                    <div class="listing-fields-row">
+                        <div class="listing-field">
+                            <div class="listing-field-label">Name</div>
+                            <div class="listing-field-val" id="dash-ro-name">—</div>
+                        </div>
+                        <div class="listing-field">
+                            <div class="listing-field-label">Specialty</div>
+                            <div class="listing-field-val" id="dash-ro-specialty">—</div>
+                        </div>
+                    </div>
+                    <div class="listing-field">
+                        <div class="listing-field-label">Address (from NPI record)</div>
+                        <div class="listing-field-val" id="dash-ro-address">—</div>
+                    </div>
+
+                    <!-- Editable fields -->
+                    <div class="listing-fields-row">
+                        <div class="listing-field">
+                            <div class="listing-field-label">Contact Phone</div>
+                            <input type="tel" id="dash-phone"
+                                   class="listing-field-input"
+                                   placeholder="Add a phone number">
+                        </div>
+                        <div class="listing-field">
+                            <div class="listing-field-label">Accepting New Patients</div>
+                            <select id="dash-accepting" class="listing-field-select">
+                                <option value="yes">Yes — Accepting</option>
+                                <option value="no">No — Not Accepting</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="listing-actions">
+                    <button id="dash-save-btn" disabled>Save Changes</button>
+                    <button id="dash-reset-btn">Reset</button>
+                    <button id="dash-signout-btn">Sign Out</button>
+                </div>
+            </div><!-- /.listing-card -->
+
+            <p class="nppes-note">
+                Name, address, and specialty are sourced from your NPI record and cannot be edited here.
+                To update these fields, visit the
+                <a href="https://nppes.cms.hhs.gov/" target="_blank" rel="noopener noreferrer">NPPES registry</a>.
+            </p>
+        </div><!-- /#view-dashboard -->
+
+    </div><!-- /#app-body -->
+
+    <!-- ══ PROVIDER SIGN-IN MODAL ══════════════════════════════════ -->
+    <div id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div id="signin-modal">
+            <button id="modal-close" aria-label="Close">✕</button>
+            <div class="modal-eyebrow">Provider Portal</div>
+            <h2 class="modal-title" id="modal-title">Sign in to your account</h2>
+            <p class="modal-sub">
+                Access and manage your listing as it appears to clients in the directory.
+            </p>
+
+            <div id="modal-error">Invalid email or password. Please try again.</div>
+
+            <div class="modal-field">
+                <input type="email" id="modal-email" class="modal-input"
+                       placeholder="Email address" autocomplete="email">
+            </div>
+            <div class="modal-field">
+                <input type="password" id="modal-password" class="modal-input"
+                       placeholder="Password" autocomplete="current-password">
+            </div>
+            <div class="modal-forgot">Forgot password?</div>
+
+            <button id="modal-signin-btn">Sign In</button>
+
+            <div class="modal-divider">
+                <div class="modal-divider-line"></div>
+                <span class="modal-divider-text">New to MindBridge?</span>
+                <div class="modal-divider-line"></div>
+            </div>
+
+            <button id="modal-claim-btn">Claim your listing</button>
+        </div>
+    </div>
+
+    <!-- ══ SAVE TOAST ══════════════════════════════════════════════ -->
+    <div id="save-toast">✓ Changes saved successfully</div>
+
+    <!-- ══ SCRIPTS ════════════════════════════════════════════════ -->
+    <script type="module">
+
+        // ── Config ────────────────────────────────────────────────
+        const API_URL = "https://jack11cater.pythonanywhere.com/api/search";
+        const RESULTS_PER_PAGE = 20;
+
+        // ── Search state ──────────────────────────────────────────
+        let allFoundProviders = [];
+        let currentOffset     = 0;
+        let totalFound        = 0;
+        let isSearching       = false;
+        let lastUsedCoords    = null;   // BUG FIX: reused by Load More
+
+        // ── DOM refs ──────────────────────────────────────────────
+        const findBtn           = document.getElementById('find-btn');
+        const addressInput      = document.getElementById('address-input');
+        const radiusSelect      = document.getElementById('radius-select');
+        const taxonomySelect    = document.getElementById('taxonomy-select');
+        const statusMessage     = document.getElementById('status-message');
+        const resultsContainer  = document.getElementById('results-container');
+        const resultsPlaceholder= document.getElementById('results-placeholder');
+        const resultsCount      = document.getElementById('results-count');
+        const sortLabel         = document.getElementById('sort-label');
+        const loadMoreContainer = document.getElementById('load-more-container');
+        const loadMoreBtn       = document.getElementById('load-more-btn');
+        const getLocationBtn    = document.getElementById('get-location-btn');
+
+        // Provider modal & dashboard
+        const providerSigninBtn   = document.getElementById('provider-signin-btn');
+        const modalOverlay        = document.getElementById('modal-overlay');
+        const modalClose          = document.getElementById('modal-close');
+        const modalEmail          = document.getElementById('modal-email');
+        const modalPassword       = document.getElementById('modal-password');
+        const modalSigninBtn      = document.getElementById('modal-signin-btn');
+        const modalClaimBtn       = document.getElementById('modal-claim-btn');
+        const modalError          = document.getElementById('modal-error');
+        const viewSearch          = document.getElementById('view-search');
+        const viewDashboard       = document.getElementById('view-dashboard');
+        const dashGreeting        = document.getElementById('dash-greeting');
+        const dashAvatar          = document.getElementById('dash-avatar');
+        const dashListingName     = document.getElementById('dash-listing-name');
+        const dashListingNpi      = document.getElementById('dash-listing-npi');
+        const dashRoName          = document.getElementById('dash-ro-name');
+        const dashRoSpecialty     = document.getElementById('dash-ro-specialty');
+        const dashRoAddress       = document.getElementById('dash-ro-address');
+        const dashPhone           = document.getElementById('dash-phone');
+        const dashAccepting       = document.getElementById('dash-accepting');
+        const dashSaveBtn         = document.getElementById('dash-save-btn');
+        const dashResetBtn        = document.getElementById('dash-reset-btn');
+        const dashSignoutBtn      = document.getElementById('dash-signout-btn');
+        const dashboardUserPill   = document.getElementById('dashboard-user-pill');
+        const dashboardUserName   = document.getElementById('dashboard-user-name');
+        const saveToast           = document.getElementById('save-toast');
+
+        // ── Dashboard original values (for reset) ─────────────────
+        let dashOrigPhone     = '';
+        let dashOrigAccepting = 'yes';
+        let dashHasChanges    = false;
+
+        // ══════════════════════════════════════════════════════════
+        // SECTION 1: PROVIDER MODAL & DASHBOARD
+        // ══════════════════════════════════════════════════════════
+
+        function openModal() {
+            modalOverlay.classList.add('open');
+            modalEmail.focus();
+            modalError.style.display = 'none';
+        }
+        function closeModal() {
+            modalOverlay.classList.remove('open');
+            modalEmail.value = '';
+            modalPassword.value = '';
+            modalError.style.display = 'none';
+        }
+
+        providerSigninBtn.addEventListener('click', openModal);
+        modalClose.addEventListener('click', closeModal);
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalOverlay.classList.contains('open')) closeModal();
+        });
+
+        // ── Sign-in handler ───────────────────────────────────────
+        // TODO: Replace this stub with a real POST /api/auth/login call.
+        // On success the API should return the provider's NPI record data
+        // which can be used to populate the dashboard fields below.
+        async function handleSignIn() {
+            const email    = modalEmail.value.trim();
+            const password = modalPassword.value;
+
+            if (!email || !password) {
+                modalError.textContent = 'Please enter your email and password.';
+                modalError.style.display = 'block';
+                return;
+            }
+
+            modalSigninBtn.textContent = 'Signing in…';
+            modalSigninBtn.disabled = true;
+
+            // --- STUB: swap this block for a real fetch() to /api/auth/login ---
+            await new Promise(r => setTimeout(r, 600)); // simulate network
+            const mockSuccess = true; // always succeeds in prototype
+            // --- END STUB ---
+
+            if (mockSuccess) {
+                closeModal();
+                showDashboard({
+                    // TODO: replace with data from your auth API response
+                    name:      'Dr. Sarah Okonkwo',
+                    npi:       '1234567890',
+                    specialty: 'Clinical Psychologist',
+                    address:   '418 Maple Ave, Suite 3, Boston, MA 02101',
+                    phone:     '(617) 555-0142',
+                    accepting: 'yes'
+                });
+            } else {
+                modalError.textContent = 'Invalid email or password. Please try again.';
+                modalError.style.display = 'block';
+            }
+
+            modalSigninBtn.textContent = 'Sign In';
+            modalSigninBtn.disabled = false;
+        }
+
+        modalSigninBtn.addEventListener('click', handleSignIn);
+        modalPassword.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleSignIn();
+        });
+
+        // ── Claim listing handler ─────────────────────────────────
+        // TODO: Route to a claim/registration flow
+        modalClaimBtn.addEventListener('click', () => {
+            alert('Claim flow coming soon. This will walk providers through NPI verification.');
+        });
+
+        // ── Show dashboard ────────────────────────────────────────
+        function showDashboard(providerData) {
+            const firstName = providerData.name.split(' ')[0].replace(/^Dr\.?\s*/i, '').trim() ||
+                              providerData.name.split(' ')[0];
+
+            // Header swap
+            providerSigninBtn.style.display   = 'none';
+            dashboardUserPill.style.display   = 'flex';
+            dashboardUserName.textContent     = `Signed in as ${providerData.name}`;
+
+            // Greeting
+            dashGreeting.textContent = `Welcome back, ${firstName}.`;
+
+            // Avatar initials
+            const parts    = providerData.name.replace(/^Dr\.?\s*/i, '').trim().split(' ');
+            const initials = (parts[0]?.[0] ?? '') + (parts[parts.length - 1]?.[0] ?? '');
+            dashAvatar.textContent = initials.toUpperCase();
+
+            // Read-only fields
+            dashListingName.textContent  = providerData.name;
+            dashListingNpi.textContent   = `NPI: ${providerData.npi}`;
+            dashRoName.textContent       = providerData.name;
+            dashRoSpecialty.textContent  = providerData.specialty;
+            dashRoAddress.textContent    = providerData.address;
+
+            // Editable fields & reset baselines
+            dashPhone.value           = providerData.phone     || '';
+            dashAccepting.value       = providerData.accepting || 'yes';
+            dashOrigPhone             = dashPhone.value;
+            dashOrigAccepting         = dashAccepting.value;
+            dashHasChanges            = false;
+            dashSaveBtn.disabled      = true;
+
+            // Show dashboard, hide search
+            viewSearch.style.display    = 'none';
+            viewDashboard.classList.add('active');
+        }
+
+        // ── Track editable field changes ──────────────────────────
+        function onDashFieldChange() {
+            dashHasChanges       = (dashPhone.value     !== dashOrigPhone ||
+                                    dashAccepting.value !== dashOrigAccepting);
+            dashSaveBtn.disabled = !dashHasChanges;
+        }
+        dashPhone.addEventListener('input', onDashFieldChange);
+        dashAccepting.addEventListener('change', onDashFieldChange);
+
+        // ── Save changes ──────────────────────────────────────────
+        // TODO: Replace stub with PATCH /api/provider/me
+        dashSaveBtn.addEventListener('click', async () => {
+            dashSaveBtn.textContent = 'Saving…';
+            dashSaveBtn.disabled    = true;
+
+            // --- STUB: swap for real PATCH /api/provider/me ---
+            await new Promise(r => setTimeout(r, 500));
+            // --- END STUB ---
+
+            dashOrigPhone     = dashPhone.value;
+            dashOrigAccepting = dashAccepting.value;
+            dashHasChanges    = false;
+            dashSaveBtn.textContent = 'Save Changes';
+
+            // Show toast
+            saveToast.classList.remove('show');
+            void saveToast.offsetWidth; // force reflow to restart animation
+            saveToast.classList.add('show');
+            setTimeout(() => saveToast.classList.remove('show'), 2200);
+        });
+
+        // ── Reset fields ──────────────────────────────────────────
+        dashResetBtn.addEventListener('click', () => {
+            dashPhone.value     = dashOrigPhone;
+            dashAccepting.value = dashOrigAccepting;
+            dashHasChanges      = false;
+            dashSaveBtn.disabled = true;
+        });
+
+        // ── Sign out ──────────────────────────────────────────────
+        // TODO: Also call POST /api/auth/logout to invalidate session
+        dashSignoutBtn.addEventListener('click', () => {
+            viewDashboard.classList.remove('active');
+            viewSearch.style.display = 'flex';
+            providerSigninBtn.style.display = '';
+            dashboardUserPill.style.display = 'none';
+        });
+
+        // ══════════════════════════════════════════════════════════
+        // SECTION 2: GEOCODING
+        // ══════════════════════════════════════════════════════════
+
+        function handleGetLocation() {
+            if (isSearching || !navigator.geolocation) {
+                showStatus("Geolocation is not supported or a search is in progress.", "error");
+                return;
+            }
+            showStatus("Getting your location…", "info");
+            getLocationBtn.disabled = true;
+            findBtn.disabled = true;
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    lastUsedCoords = {
+                        lat: position.coords.latitude,
+                        lon: position.coords.longitude
+                    };
+                    showStatus("Location found. Getting address…", "info");
+                    try {
+                        const address = await reverseGeocode(lastUsedCoords.lat, lastUsedCoords.lon);
+                        addressInput.value = address;
+                    } catch {
+                        addressInput.value =
+                            `Lat: ${lastUsedCoords.lat.toFixed(4)}, Lon: ${lastUsedCoords.lon.toFixed(4)}`;
+                    }
+                    showStatus("Location found. Starting search…", "success");
+                    findProviders(true);
+                },
+                (err) => {
+                    console.warn(`Geolocation error: ${err.message}`);
+                    let msg = "Could not get your location.";
+                    if (err.code === 1) msg = "Please allow location access to use this feature.";
+                    showStatus(msg, "error");
+                    getLocationBtn.disabled = false;
+                    findBtn.disabled = false;
+                }
+            );
+        }
+        getLocationBtn.addEventListener('click', handleGetLocation);
+
+        async function reverseGeocode(lat, lon) {
+            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`;
+            const res = await fetch(url, { headers: { 'User-Agent': 'MindBridgeProviderFinder/1.2' } });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            if (data?.address) {
+                const { road, house_number, city, town, village, state, postcode } = data.address;
+                return `${house_number || ''} ${road || ''}, ${city || town || village || ''}, ${state || ''} ${postcode || ''}`
+                    .replace(/ ,/g, ',').replace(/\s{2,}/g, ' ').trim();
+            }
+            if (data?.display_name) return data.display_name;
+            throw new Error("Could not determine address.");
+        }
+
+        async function geocodeAddress(address) {
+            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
+            const res = await fetch(url, { headers: { 'User-Agent': 'MindBridgeProviderFinder/1.2' } });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            if (data?.length > 0) return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+            throw new Error("Address not found. Please try a more specific address or ZIP code.");
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // SECTION 3: SEARCH
+        // ══════════════════════════════════════════════════════════
+
+        function showStatus(message, type = 'info') {
+            statusMessage.textContent = message;
+            statusMessage.className   = type; // matches CSS classes: info / success / error
+        }
+        function hideStatus() {
+            statusMessage.className = '';
+            statusMessage.style.display = 'none';
+        }
+
+        async function findProviders(isNewSearch = true) {
+            if (isSearching) return;
+            isSearching = true;
+
+            if (isNewSearch) {
+                currentOffset      = 0;
+                allFoundProviders  = [];
+            }
+
+            setLoadingState(true);
+
+            let coordsToUse;
+
+            if (isNewSearch) {
+                const locationStr = addressInput.value.trim();
+                if (lastUsedCoords && !locationStr.includes(',')) {
+                    coordsToUse = lastUsedCoords;
+                } else if (locationStr) {
+                    showStatus("Getting your location…", "info");
+                    try {
+                        coordsToUse    = await geocodeAddress(locationStr);
+                        lastUsedCoords = coordsToUse; // BUG FIX: store for Load More
+                    } catch (err) {
+                        showStatus(err.message, "error");
+                        setLoadingState(false);
+                        return;
+                    }
+                } else {
+                    showStatus("Please enter an address or ZIP code.", "error");
+                    setLoadingState(false);
+                    return;
+                }
+            } else {
+                // BUG FIX: Load More reuses stored coords instead of re-geocoding
+                coordsToUse = lastUsedCoords;
+                if (!coordsToUse) {
+                    showStatus("Please start a new search first.", "error");
+                    setLoadingState(false);
+                    return;
+                }
+                showStatus("Loading more results…", "info");
+            }
+
+            showStatus("Searching for providers…", "info");
+
+            const radius           = parseFloat(radiusSelect.value);
+            const selectedTaxonomy = taxonomySelect.value;
+
+            try {
+                const url = new URL(API_URL);
+                url.searchParams.append('lat',      coordsToUse.lat);
+                url.searchParams.append('lon',      coordsToUse.lon);
+                url.searchParams.append('radius',   radius);
+                url.searchParams.append('taxonomy', selectedTaxonomy);
+                url.searchParams.append('offset',   currentOffset);
+
+                const response = await fetch(url);
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error || `Server error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                allFoundProviders.push(...data.results);
+                totalFound = data.total;
+
+                displayResults();
+                hideStatus();
+
+            } catch (err) {
+                console.error("API search error:", err);
+                showStatus(`Search failed: ${err.message}`, "error");
+                if (!isNewSearch) currentOffset -= RESULTS_PER_PAGE;
+            } finally {
+                setLoadingState(false);
+            }
+        }
+        findBtn.addEventListener('click', () => findProviders(true));
+
+        function setLoadingState(isLoading) {
+            isSearching             = isLoading;
+            findBtn.disabled        = isLoading;
+            getLocationBtn.disabled = isLoading;
+            loadMoreBtn.disabled    = isLoading;
+            findBtn.textContent     = isLoading ? "Searching…" : "Find Providers";
+            loadMoreBtn.textContent = isLoading ? "Loading…"   : "Load More";
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // SECTION 4: DISPLAY RESULTS
+        // ══════════════════════════════════════════════════════════
+
+        function getInitials(name) {
+            const parts = (name || '').trim().split(/\s+/);
+            if (parts.length === 1) return parts[0][0] || '?';
+            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        }
+
+        // SECURITY: DOM-based sanitiser prevents XSS from DB content
+        function safe(val) {
+            const div = document.createElement('div');
+            div.appendChild(document.createTextNode(val ?? ''));
+            return div.innerHTML;
+        }
+
+        function displayResults() {
+            if (resultsPlaceholder) resultsPlaceholder.style.display = 'none';
+
+            // Rebuild from scratch on each display call
+            resultsContainer.innerHTML = '';
+
+            if (allFoundProviders.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+                                flex:1;padding:60px 40px;text-align:center;color:var(--text-light);gap:12px;">
+                        <div class="empty-circle">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+                                 stroke="#B8D4CC" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="m21 21-4.35-4.35"/>
+                            </svg>
+                        </div>
+                        <p style="font-size:0.875rem;line-height:1.6;max-width:220px;">
+                            <strong>No providers found.</strong><br>
+                            Try expanding your search radius or changing the provider type.
+                        </p>
+                    </div>`;
+                sortLabel.style.display = 'none';
+                return;
+            }
+
+            sortLabel.style.display = '';
+
+            allFoundProviders.forEach(provider => {
+                const card     = document.createElement('div');
+                card.className = 'prov-card';
+
+                const initials  = getInitials(provider.Name);
+                const isVerified = Boolean(provider.verified); // future API field
+                const mapsUrl   = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    `${provider.Name}, ${provider.Address}, ${provider.City}, ${provider.State}`
+                )}`;
+
+                const verifiedBadgeHtml = isVerified
+                    ? `<span class="verified-badge">✓ Verified</span>` : '';
+                const acceptingHtml = provider.accepting === false
+                    ? `<span class="accepting-no">Not accepting</span>`
+                    : provider.accepting === true
+                        ? `<span class="accepting-yes">Accepting patients</span>`
+                        : ''; // omit if field not present
+                const phoneHtml = provider.phone
+                    ? `<div class="prov-phone">${safe(provider.phone)}</div>` : '';
+
+                card.innerHTML = `
+                    <div class="prov-avatar${isVerified ? ' verified-av' : ''}">${safe(initials)}</div>
+                    <div class="prov-info">
+                        <div class="prov-name-row">
+                            <span class="prov-name">${safe(provider.Name)}</span>
+                            ${verifiedBadgeHtml}
+                        </div>
+                        <div class="prov-type">${safe(provider.taxonomy ?? '')}</div>
+                        <div class="prov-address">
+                            ${safe(provider.Address)},
+                            ${safe(provider.City)}, ${safe(provider.State)} ${safe(provider.PostalCode)}
+                        </div>
+                        ${phoneHtml}
+                        <div style="font-size:0.72rem;color:var(--text-light);margin-top:3px;">
+                            NPI: ${safe(provider.NPI)}
+                        </div>
+                    </div>
+                    <div class="prov-right">
+                        <div class="prov-distance">${provider.distance.toFixed(1)} <span>mi</span></div>
+                        <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" class="map-link">
+                            View Map
+                        </a>
+                        ${acceptingHtml}
+                    </div>`;
+
+                resultsContainer.appendChild(card);
+            });
+
+            resultsCount.innerHTML =
+                `Showing <strong>${allFoundProviders.length}</strong> of <strong>${totalFound}</strong> providers`;
+
+            loadMoreContainer.style.display =
+                totalFound > allFoundProviders.length ? 'block' : 'none';
+        }
+
+        loadMoreBtn.addEventListener('click', () => {
+            currentOffset += RESULTS_PER_PAGE;
+            findProviders(false);
+        });
+
+    </script>
+</body>
+</html>

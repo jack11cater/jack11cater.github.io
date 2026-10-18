@@ -1,0 +1,7 @@
+ 
+Feature,Current (Client-Side),Recommended (Back-End)
+Initial Load,Very Slow (User downloads entire GB database),Instant (User only downloads HTML/JS file)
+Search Speed,Slow (Browser's memory),Very Fast (Powerful server queries an indexed DB)
+Bandwidth,Extremely High (GBs per user),Very Low (KBs per search)
+Updates,Impossible (User must re-download entire DB),Easy (You update the DB on the server once)
+Security,User downloads your entire provider database.,User only ever sees the results of their specific query.

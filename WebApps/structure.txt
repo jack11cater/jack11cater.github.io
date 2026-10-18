@@ -1,0 +1,8 @@
+/my-provider-project
+|-- .gitignore           (New file)
+|-- app.py               (Your existing back-end)
+|-- db_manager_gui.py    (Optional, for local use only)
+|-- index.html           (Your existing front-end)
+|-- Procfile             (New file - no extension!)
+|-- providers.sqlite     (Your database)
+|-- requirements.txt     (Updated dependencies)
